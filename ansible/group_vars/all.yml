@@ -72,18 +72,18 @@ fingerprint_pam_services:
 # =============================================================================
 
 # Lid close behavior
-#lid_switch_on_ac: lock           # Display off, no suspend
-#lid_switch_on_battery: suspend   # Suspend on battery
+lid_switch_on_ac: lock           # Display off, no suspend
+lid_switch_on_battery: suspend   # Suspend on battery
 
 # Lid open / idle behavior (handled separately via systemd)
-#idle_action_on_ac: lock
-#idle_action_sec_on_ac: 5min      # Display off after 5 mins on AC
+idle_action_on_ac: lock
+idle_action_sec_on_ac: 5min      # Display off after 5 mins on AC
 
-#idle_action_on_battery: suspend
-#idle_action_sec_on_battery: 10min  # Suspend after 10 mins on battery
+idle_action_on_battery: suspend
+idle_action_sec_on_battery: 10min  # Suspend after 10 mins on battery
 
 # Docked behavior
-#lid_switch_docked: ignore
+lid_switch_docked: ignore
 
 # Power button
-#power_key_action: poweroff
+power_key_action: poweroff
