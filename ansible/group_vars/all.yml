@@ -9,6 +9,14 @@ enable_fingerprint: true
 force_power_management: false
 
 # =============================================================================
+# FEATURE FLAGS
+# =============================================================================
+
+install_nordvpn: true
+install_chezmoi: true
+install_claude: true
+
+# =============================================================================
 # PACKAGES
 # =============================================================================
 
@@ -30,8 +38,7 @@ packages_arch:
   - eza
   - swayidle
 
-packages_aur:
-  - nordvpn-gui-bin
+packages_aur: []
 
 packages_fedora:
   - fd-find

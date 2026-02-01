@@ -1,0 +1,96 @@
+---
+# =============================================================================
+# AUR support (Arch/CachyOS only)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Install paru AUR helper
+# -----------------------------------------------------------------------------
+
+- name: Check if paru is installed
+  ansible.builtin.command: which paru
+  register: paru_check
+  changed_when: false
+  failed_when: false
+
+- name: Install paru dependencies
+  community.general.pacman:
+    name:
+      - base-devel
+      - git
+    state: present
+  when: paru_check.rc != 0
+
+- name: Clone paru repository
+  ansible.builtin.git:
+    repo: https://aur.archlinux.org/paru-bin.git
+    dest: /tmp/paru-bin
+    version: master
+  become: yes
+  become_user: "{{ primary_user }}"
+  when: paru_check.rc != 0
+
+- name: Build and install paru
+  ansible.builtin.command:
+    cmd: makepkg -si --noconfirm
+    chdir: /tmp/paru-bin
+  become: yes
+  become_user: "{{ primary_user }}"
+  when: paru_check.rc != 0
+
+# -----------------------------------------------------------------------------
+# Install AUR packages
+# -----------------------------------------------------------------------------
+
+- name: Check which AUR packages need installation
+  ansible.builtin.shell: |
+    for pkg in {{ packages_aur | join(' ') }}; do
+      if ! pacman -Qi "$pkg" &>/dev/null; then
+        echo "$pkg"
+      fi
+    done
+  register: aur_packages_needed
+  changed_when: false
+  when:
+    - packages_aur is defined
+    - packages_aur | length > 0
+
+- name: Create AUR build directory
+  ansible.builtin.file:
+    path: "/tmp/aur_builds"
+    state: directory
+    owner: "{{ primary_user }}"
+    mode: '0755'
+  when: aur_packages_needed.stdout_lines | default([]) | length > 0
+
+- name: Clone AUR packages
+  ansible.builtin.git:
+    repo: "https://aur.archlinux.org/{{ item }}.git"
+    dest: "/tmp/aur_builds/{{ item }}"
+    version: master
+  loop: "{{ aur_packages_needed.stdout_lines | default([]) }}"
+  become: yes
+  become_user: "{{ primary_user }}"
+  when: aur_packages_needed.stdout_lines | default([]) | length > 0
+
+- name: Build AUR packages
+  ansible.builtin.shell: |
+    cd /tmp/aur_builds/{{ item }} && makepkg -s --noconfirm --needed
+  loop: "{{ aur_packages_needed.stdout_lines | default([]) }}"
+  become: yes
+  become_user: "{{ primary_user }}"
+  when: aur_packages_needed.stdout_lines | default([]) | length > 0
+
+- name: Find built AUR packages
+  ansible.builtin.find:
+    paths: "/tmp/aur_builds"
+    patterns: "*.pkg.tar.zst"
+    recurse: yes
+  register: built_packages
+  when: aur_packages_needed.stdout_lines | default([]) | length > 0
+
+- name: Install built AUR packages
+  community.general.pacman:
+    name: "{{ built_packages.files | map(attribute='path') | list }}"
+    state: present
+  when: built_packages.files | default([]) | length > 0

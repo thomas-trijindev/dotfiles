@@ -1,0 +1,44 @@
+---
+# =============================================================================
+# chezmoi installation
+# =============================================================================
+
+- name: Check if chezmoi is installed
+  ansible.builtin.command: which chezmoi
+  register: chezmoi_check
+  changed_when: false
+  failed_when: false
+
+- name: Install chezmoi (Arch/CachyOS)
+  community.general.pacman:
+    name: chezmoi
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Archlinux"
+    - chezmoi_check.rc != 0
+
+- name: Install chezmoi (Fedora)
+  ansible.builtin.dnf:
+    name: chezmoi
+    state: present
+  when:
+    - ansible_facts['distribution'] == "Fedora"
+    - chezmoi_check.rc != 0
+
+- name: Install chezmoi (Ubuntu/Debian)
+  ansible.builtin.shell: |
+    sh -c "$(curl -fsLS get.chezmoi.io)" -- -b /usr/local/bin
+  args:
+    creates: /usr/local/bin/chezmoi
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - chezmoi_check.rc != 0
+
+- name: Install chezmoi (macOS)
+  community.general.homebrew:
+    name: chezmoi
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - chezmoi_check.rc != 0
+  become: no

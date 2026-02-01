@@ -1,0 +1,17 @@
+---
+# =============================================================================
+# Claude Code installation
+# =============================================================================
+
+- name: Check if Claude Code is installed
+  ansible.builtin.command: which claude
+  register: claude_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Claude Code
+  ansible.builtin.shell: |
+    curl -fsSL https://claude.ai/install.sh | bash
+  become: yes
+  become_user: "{{ primary_user }}"
+  when: claude_check.rc != 0
