@@ -84,17 +84,78 @@
     - ansible_facts['os_family'] == "Archlinux"
     - paru_check.rc != 0
 
-- name: Install AUR packages (Arch/CachyOS)
-  kewlfft.aur.aur:
-    name: "{{ packages_aur }}"
-    use: paru
-    state: present
-  become: yes
-  become_user: "{{ primary_user }}"
+- name: Check which AUR packages need to be installed (Arch/CachyOS)
+  ansible.builtin.shell: |
+    for pkg in {{ packages_aur | join(' ') }}; do
+      if ! pacman -Qi "$pkg" &>/dev/null; then
+        echo "$pkg"
+      fi
+    done
+  register: aur_packages_needed
+  changed_when: false
   when:
     - ansible_facts['os_family'] == "Archlinux"
     - packages_aur is defined
     - packages_aur | length > 0
+
+- name: Create AUR build directory (Arch/CachyOS)
+  ansible.builtin.file:
+    path: "/tmp/aur_builds"
+    state: directory
+    owner: "{{ primary_user }}"
+    mode: '0755'
+  when:
+    - ansible_facts['os_family'] == "Archlinux"
+    - aur_packages_needed.stdout_lines | default([]) | length > 0
+
+- name: Clone AUR packages (Arch/CachyOS)
+  ansible.builtin.git:
+    repo: "https://aur.archlinux.org/{{ item }}.git"
+    dest: "/tmp/aur_builds/{{ item }}"
+    version: master
+  loop: "{{ aur_packages_needed.stdout_lines | default([]) }}"
+  become: yes
+  become_user: "{{ primary_user }}"
+  when:
+    - ansible_facts['os_family'] == "Archlinux"
+    - aur_packages_needed.stdout_lines | default([]) | length > 0
+
+- name: Build AUR packages (Arch/CachyOS)
+  ansible.builtin.shell: |
+    cd /tmp/aur_builds/{{ item }} && makepkg -s --noconfirm --needed
+  loop: "{{ aur_packages_needed.stdout_lines | default([]) }}"
+  become: yes
+  become_user: "{{ primary_user }}"
+  when:
+    - ansible_facts['os_family'] == "Archlinux"
+    - aur_packages_needed.stdout_lines | default([]) | length > 0
+
+- name: Find built AUR packages (Arch/CachyOS)
+  ansible.builtin.find:
+    paths: "/tmp/aur_builds"
+    patterns: "*.pkg.tar.zst"
+    recurse: yes
+  register: built_packages
+  when:
+    - ansible_facts['os_family'] == "Archlinux"
+    - aur_packages_needed.stdout_lines | default([]) | length > 0
+
+- name: Install built AUR packages (Arch/CachyOS)
+  community.general.pacman:
+    name: "{{ built_packages.files | map(attribute='path') | list }}"
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Archlinux"
+    - built_packages.files | default([]) | length > 0
+
+- name: Add user to nordvpn group (Arch/CachyOS)
+  ansible.builtin.user:
+    name: "{{ primary_user }}"
+    groups: nordvpn
+    append: yes
+  when:
+    - ansible_facts['os_family'] == "Archlinux"
+    - "'nordvpn-gui-bin' in packages_aur"
 
 - name: Enable nordvpnd service (Arch/CachyOS)
   ansible.builtin.systemd:
@@ -103,7 +164,7 @@
     state: started
   when:
     - ansible_facts['os_family'] == "Archlinux"
-    - "'nordvpn-bin' in packages_aur"
+    - "'nordvpn-gui-bin' in packages_aur"
 
 - name: Check if NordVPN is installed (Fedora)
   ansible.builtin.command: which nordvpn

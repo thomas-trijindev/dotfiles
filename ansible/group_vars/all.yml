@@ -31,7 +31,7 @@ packages_arch:
   - swayidle
 
 packages_aur:
-  - nordvpn-bin
+  - nordvpn-gui-bin
 
 packages_fedora:
   - fd-find
