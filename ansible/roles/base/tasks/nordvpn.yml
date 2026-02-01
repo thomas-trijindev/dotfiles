@@ -1,12 +1,39 @@
 ---
 # =============================================================================
-# NordVPN installation
+# NORDVPN INSTALLATION - roles/base/tasks/nordvpn.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Install NordVPN client on all supported platforms using the appropriate
+#   method for each distribution.
+#
+# INSTALLATION METHODS:
+#   - Arch/CachyOS: AUR package (nordvpn-gui-bin) - includes both CLI and GUI
+#   - Fedora:       Official NordVPN repository
+#   - Ubuntu/Debian: Official NordVPN repository
+#   - macOS:        Homebrew cask
+#
+# POST-INSTALL STEPS (manual):
+#   1. Log in: nordvpn login
+#   2. Connect: nordvpn connect
+#   3. Optional: nordvpn set killswitch on
+#
+# FEATURE FLAG:
+#   Controlled by 'install_nordvpn' variable in group_vars/all.yml
+#   Set to 'false' to skip NordVPN installation
+#
+# NOTE: This task file only runs when install_nordvpn is true (controlled by main.yml)
+#
 # =============================================================================
 
-# -----------------------------------------------------------------------------
-# Arch/CachyOS (via AUR)
-# -----------------------------------------------------------------------------
 
+# -----------------------------------------------------------------------------
+# ARCH/CACHYOS (via AUR)
+# -----------------------------------------------------------------------------
+# On Arch, we install nordvpn-gui-bin from AUR which includes both the
+# CLI tool and the GUI application.
+
+# Check if nordvpn is already installed
 - name: Check if NordVPN is installed (Arch/CachyOS)
   ansible.builtin.command: which nordvpn
   register: nordvpn_check_arch
@@ -14,6 +41,7 @@
   failed_when: false
   when: ansible_facts['os_family'] == "Archlinux"
 
+# Create build directory for the AUR package
 - name: Create NordVPN build directory (Arch/CachyOS)
   ansible.builtin.file:
     path: "/tmp/aur_builds/nordvpn-gui-bin"
@@ -24,6 +52,8 @@
     - ansible_facts['os_family'] == "Archlinux"
     - nordvpn_check_arch.rc != 0
 
+# Clone the nordvpn-gui-bin AUR package
+# This package bundles the official NordVPN Linux app
 - name: Clone NordVPN GUI from AUR (Arch/CachyOS)
   ansible.builtin.git:
     repo: https://aur.archlinux.org/nordvpn-gui-bin.git
@@ -35,6 +65,8 @@
     - ansible_facts['os_family'] == "Archlinux"
     - nordvpn_check_arch.rc != 0
 
+# Build the package using makepkg
+# Must run as non-root user
 - name: Build NordVPN GUI (Arch/CachyOS)
   ansible.builtin.shell: |
     cd /tmp/aur_builds/nordvpn-gui-bin && makepkg -s --noconfirm
@@ -44,6 +76,7 @@
     - ansible_facts['os_family'] == "Archlinux"
     - nordvpn_check_arch.rc != 0
 
+# Find the built package file
 - name: Find built NordVPN package (Arch/CachyOS)
   ansible.builtin.find:
     paths: "/tmp/aur_builds/nordvpn-gui-bin"
@@ -53,6 +86,7 @@
     - ansible_facts['os_family'] == "Archlinux"
     - nordvpn_check_arch.rc != 0
 
+# Install the built package using pacman (requires root)
 - name: Install NordVPN GUI (Arch/CachyOS)
   community.general.pacman:
     name: "{{ nordvpn_built_package.files | map(attribute='path') | list }}"
@@ -61,13 +95,15 @@
     - ansible_facts['os_family'] == "Archlinux"
     - nordvpn_built_package.files | default([]) | length > 0
 
+# Add user to nordvpn group so they can use the VPN without sudo
 - name: Add user to nordvpn group (Arch/CachyOS)
   ansible.builtin.user:
     name: "{{ primary_user }}"
     groups: nordvpn
-    append: yes
+    append: yes    # Append to existing groups, don't replace
   when: ansible_facts['os_family'] == "Archlinux"
 
+# Enable and start the nordvpnd daemon service
 - name: Enable nordvpnd service (Arch/CachyOS)
   ansible.builtin.systemd:
     name: nordvpnd
@@ -75,9 +111,11 @@
     state: started
   when: ansible_facts['os_family'] == "Archlinux"
 
+
 # -----------------------------------------------------------------------------
-# Fedora
+# FEDORA
 # -----------------------------------------------------------------------------
+# On Fedora, we use NordVPN's official repository and install via dnf.
 
 - name: Check if NordVPN is installed (Fedora)
   ansible.builtin.command: which nordvpn
@@ -86,6 +124,8 @@
   failed_when: false
   when: ansible_facts['distribution'] == "Fedora"
 
+# Install NordVPN's official repo using their install script with -n flag
+# The -n flag adds the repo without installing the package
 - name: Install NordVPN repository (Fedora)
   ansible.builtin.shell: |
     sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh) -n
@@ -93,6 +133,7 @@
     - ansible_facts['distribution'] == "Fedora"
     - nordvpn_check_fedora.rc != 0
 
+# Install nordvpn package from the repo
 - name: Install NordVPN (Fedora)
   ansible.builtin.dnf:
     name: nordvpn
@@ -101,6 +142,7 @@
     - ansible_facts['distribution'] == "Fedora"
     - nordvpn_check_fedora.rc != 0
 
+# Add user to nordvpn group
 - name: Add user to nordvpn group (Fedora)
   ansible.builtin.user:
     name: "{{ primary_user }}"
@@ -108,6 +150,7 @@
     append: yes
   when: ansible_facts['distribution'] == "Fedora"
 
+# Enable and start the nordvpnd daemon
 - name: Enable nordvpnd service (Fedora)
   ansible.builtin.systemd:
     name: nordvpnd
@@ -115,9 +158,11 @@
     state: started
   when: ansible_facts['distribution'] == "Fedora"
 
+
 # -----------------------------------------------------------------------------
-# Ubuntu/Debian
+# UBUNTU/DEBIAN
 # -----------------------------------------------------------------------------
+# On Ubuntu/Debian, we use NordVPN's official repository and install via apt.
 
 - name: Check if NordVPN is installed (Ubuntu/Debian)
   ansible.builtin.command: which nordvpn
@@ -126,6 +171,7 @@
   failed_when: false
   when: ansible_facts['os_family'] == "Debian"
 
+# Install NordVPN's official repo using their install script
 - name: Install NordVPN repository (Ubuntu/Debian)
   ansible.builtin.shell: |
     sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh) -n
@@ -133,15 +179,17 @@
     - ansible_facts['os_family'] == "Debian"
     - nordvpn_check_debian.rc != 0
 
+# Install nordvpn package from the repo
 - name: Install NordVPN (Ubuntu/Debian)
   ansible.builtin.apt:
     name: nordvpn
     state: present
-    update_cache: yes
+    update_cache: yes    # Refresh apt cache to see new repo
   when:
     - ansible_facts['os_family'] == "Debian"
     - nordvpn_check_debian.rc != 0
 
+# Add user to nordvpn group
 - name: Add user to nordvpn group (Ubuntu/Debian)
   ansible.builtin.user:
     name: "{{ primary_user }}"
@@ -149,6 +197,7 @@
     append: yes
   when: ansible_facts['os_family'] == "Debian"
 
+# Enable and start the nordvpnd daemon
 - name: Enable nordvpnd service (Ubuntu/Debian)
   ansible.builtin.systemd:
     name: nordvpnd
@@ -156,10 +205,15 @@
     state: started
   when: ansible_facts['os_family'] == "Debian"
 
-# -----------------------------------------------------------------------------
-# macOS
-# -----------------------------------------------------------------------------
 
+# -----------------------------------------------------------------------------
+# MACOS
+# -----------------------------------------------------------------------------
+# On macOS, we use Homebrew cask to install the NordVPN app.
+# No daemon or group setup needed on macOS.
+
+# Install NordVPN via Homebrew cask
+# become: no - Homebrew should NOT be run as root
 - name: Install NordVPN (macOS)
   community.general.homebrew_cask:
     name: nordvpn

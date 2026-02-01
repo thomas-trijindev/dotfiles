@@ -1,4 +1,27 @@
 ---
+# =============================================================================
+# POWER ROLE HANDLERS - roles/power/handlers/main.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Handlers are tasks that only run when notified by another task.
+#   They're used for actions that should only happen when something changes,
+#   like restarting a service after its config file is modified.
+#
+# HOW HANDLERS WORK:
+#   1. A task includes 'notify: Handler Name'
+#   2. If that task makes a change, the handler is queued
+#   3. All queued handlers run at the end of the play
+#   4. Each handler only runs once, even if notified multiple times
+#
+# HANDLERS IN THIS ROLE:
+#   - Restart systemd-logind: Applies changes to power.conf
+#
+# =============================================================================
+
+# Restart systemd-logind to apply power configuration changes
+# This handler is notified by the "Deploy logind power configuration" task
+# when the power.conf file is created or modified
 - name: Restart systemd-logind
   ansible.builtin.systemd:
     name: systemd-logind

@@ -1,25 +1,72 @@
 ---
+# =============================================================================
+# POWER MANAGEMENT - roles/power/tasks/main.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Configure power management settings for laptops including:
+#   - Lid close behavior (suspend, lock, ignore)
+#   - Power button action
+#   - Idle timeout and actions
+#   - Screen locking via swayidle (for Wayland compositors)
+#
+# HOW IT WORKS:
+#   - systemd-logind: Handles system-wide power events (lid, power button)
+#   - swayidle: Handles user-level idle detection (screen timeout, lock)
+#
+# CONFIGURATION:
+#   All settings are in group_vars/all.yml under "POWER MANAGEMENT" section.
+#   Available actions: ignore, lock, suspend, hibernate, poweroff
+#
+# WHEN THIS ROLE RUNS:
+#   Only on Linux laptops, controlled by conditions in local.yml:
+#   - ansible_facts['os_family'] != "Darwin" (not macOS)
+#   - detected_chassis == 'laptop' OR force_power_management == true
+#
+# FILES CREATED:
+#   - /etc/systemd/logind.conf.d/50-power.conf (system-wide power settings)
+#   - ~/.config/systemd/user/swayidle.service (user idle manager)
+#
+# =============================================================================
 
-# Ansible role to configure power management settings for laptops and desktops.
+
+# -----------------------------------------------------------------------------
+# SYSTEMD-LOGIND CONFIGURATION
+# -----------------------------------------------------------------------------
+# Configure system-level power management via logind
+
+# Create the directory for logind configuration drop-ins
+# Files in this directory override settings in /etc/systemd/logind.conf
 - name: Ensure logind.conf.d directory exists
   ansible.builtin.file:
     path: /etc/systemd/logind.conf.d
     state: directory
     mode: '0755'
 
+# Deploy the power configuration template
+# Template variables are defined in group_vars/all.yml
+# Notifies handler to restart logind when changed
 - name: Deploy logind power configuration
   ansible.builtin.template:
     src: power.conf.j2
     dest: /etc/systemd/logind.conf.d/50-power.conf
     mode: '0644'
-  notify: Restart systemd-logind
+  notify: Restart systemd-logind    # Restart to apply changes
+
+
+# -----------------------------------------------------------------------------
+# POWER-PROFILES-DAEMON
+# -----------------------------------------------------------------------------
+# Install power-profiles-daemon for managing CPU/GPU power profiles
+# This allows switching between power-saver, balanced, and performance modes
+# Can be controlled via: powerprofilesctl set <profile>
 
 - name: Install power-profiles-daemon (Arch)
   community.general.pacman:
     name: power-profiles-daemon
     state: present
   when: ansible_facts['os_family'] == "Archlinux"
-  ignore_errors: yes
+  ignore_errors: yes    # Don't fail if package not available
 
 - name: Install power-profiles-daemon (Fedora)
   ansible.builtin.dnf:
@@ -35,6 +82,7 @@
   when: ansible_facts['os_family'] == "Debian"
   ignore_errors: yes
 
+# Enable and start the power-profiles-daemon service
 - name: Enable power-profiles-daemon
   ansible.builtin.systemd:
     name: power-profiles-daemon
@@ -42,6 +90,17 @@
     state: started
   ignore_errors: yes
 
+
+# -----------------------------------------------------------------------------
+# SWAYIDLE USER SERVICE
+# -----------------------------------------------------------------------------
+# Configure swayidle for Wayland session idle management
+# swayidle runs as a user service and handles:
+#   - Screen timeout (dim, lock, power off monitors)
+#   - Lock on suspend
+#   - Wake from idle
+
+# Create the user systemd directory if it doesn't exist
 - name: Create swayidle user systemd directory
   ansible.builtin.file:
     path: "/home/{{ primary_user }}/.config/systemd/user"
@@ -50,13 +109,21 @@
     group: "{{ primary_user }}"
     mode: '0755'
 
+# Deploy the swayidle service file
+# This defines how swayidle is started and what actions it takes
 - name: Deploy swayidle systemd user service
   ansible.builtin.template:
     src: swayidle.service.j2
     dest: "/home/{{ primary_user }}/.config/systemd/user/swayidle.service"
     owner: "{{ primary_user }}"
     group: "{{ primary_user }}"
-    mode: '0644'  
+    mode: '0644'
+
+
+# -----------------------------------------------------------------------------
+# DEBUG OUTPUT
+# -----------------------------------------------------------------------------
+# Show what was configured (helpful for verification)
 
 - name: Display power configuration
   ansible.builtin.debug:

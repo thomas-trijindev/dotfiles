@@ -1,4 +1,33 @@
 ---
+# =============================================================================
+# ANSIBLE REQUIREMENTS - requirements.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Defines external Ansible collections (plugins/modules) needed by this playbook.
+#   Collections extend Ansible with additional functionality.
+#
+# HOW TO INSTALL:
+#   ansible-galaxy collection install -r requirements.yml
+#
+# HOW TO UPDATE:
+#   ansible-galaxy collection install -r requirements.yml --upgrade
+#
+# HOW TO ADD NEW COLLECTIONS:
+#   1. Find collection on Ansible Galaxy: https://galaxy.ansible.com/
+#   2. Add entry below with 'name: namespace.collection_name'
+#   3. Optionally pin version with 'version: "1.0.0"'
+#   4. Run install command above
+#
+# =============================================================================
+
 collections:
+  # community.general - Provides modules for various package managers and tools
+  # Used for: pacman, homebrew, homebrew_cask, and many other modules
+  # Docs: https://docs.ansible.com/ansible/latest/collections/community/general/
   - name: community.general
+
+  # kewlfft.aur - Provides the 'aur' module for Arch User Repository packages
+  # Used for: Installing AUR packages on Arch/CachyOS
+  # Docs: https://github.com/kewlfft/ansible-aur
   - name: kewlfft.aur

@@ -1,11 +1,44 @@
 ---
 # =============================================================================
-# Standard package installation
+# PACKAGE INSTALLATION - roles/base/tasks/packages.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Install common packages across all supported operating systems.
+#   Uses the native package manager for each distribution.
+#
+# SUPPORTED SYSTEMS:
+#   - Arch Linux / CachyOS / Manjaro (pacman)
+#   - Fedora (dnf)
+#   - Ubuntu / Debian (apt)
+#   - macOS (homebrew)
+#
+# PACKAGE LISTS:
+#   Defined in group_vars/all.yml:
+#   - packages_common  : Installed on all systems
+#   - packages_arch    : Additional Arch-specific packages
+#   - packages_fedora  : Additional Fedora-specific packages
+#   - packages_ubuntu  : Additional Ubuntu/Debian-specific packages
+#   - packages_macos   : Additional macOS-specific packages
+#
+# HOW TO ADD PACKAGES:
+#   1. Open group_vars/all.yml
+#   2. Add package to appropriate list
+#   3. Run playbook
+#
+# NOTE ON PACKAGE NAMES:
+#   Some packages have different names on different systems. Use the
+#   distro-specific lists for packages with different names.
+#   Example: 'fd' on Arch, 'fd-find' on Fedora/Ubuntu
+#
 # =============================================================================
 
+
 # -----------------------------------------------------------------------------
-# Update package cache
+# UPDATE PACKAGE CACHE
 # -----------------------------------------------------------------------------
+# Always update the package database before installing to ensure we get
+# the latest versions and avoid "package not found" errors.
 
 - name: Update package cache (Arch/CachyOS)
   community.general.pacman:
@@ -17,26 +50,32 @@
     update_cache: yes
   when: ansible_facts['distribution'] == "Fedora"
 
+# cache_valid_time: Only update if cache is older than 1 hour (3600 seconds)
+# This speeds up repeated runs
 - name: Update package cache (Ubuntu/Debian)
   ansible.builtin.apt:
     update_cache: yes
     cache_valid_time: 3600
   when: ansible_facts['os_family'] == "Debian"
 
+# become: no - Homebrew should NOT be run as root
 - name: Update Homebrew (macOS)
   community.general.homebrew:
     update_homebrew: yes
   when: ansible_facts['os_family'] == "Darwin"
   become: no
 
+
 # -----------------------------------------------------------------------------
-# Install packages
+# INSTALL PACKAGES
 # -----------------------------------------------------------------------------
+# Install packages from the combined common + distro-specific lists.
+# Each task merges the two lists and installs all packages.
 
 - name: Install packages (Arch/CachyOS)
   community.general.pacman:
     name: "{{ packages_common + packages_arch }}"
-    state: present
+    state: present    # Ensure installed (won't reinstall if already present)
   when: ansible_facts['os_family'] == "Archlinux"
 
 - name: Install packages (Fedora)
@@ -51,6 +90,7 @@
     state: present
   when: ansible_facts['os_family'] == "Debian"
 
+# become: no - Homebrew should NOT be run as root
 - name: Install packages (macOS)
   community.general.homebrew:
     name: "{{ packages_common + packages_macos }}"

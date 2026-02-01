@@ -1,49 +1,94 @@
 ---
-- name:  Configure System
-  hosts: localhost
-  connection: local
-  become: yes
+# =============================================================================
+# MAIN PLAYBOOK - local.yml
+# =============================================================================
+#
+# PURPOSE:
+#   This is the entry point for the entire Ansible configuration. It sets up
+#   a new machine with your preferred packages, tools, and configurations.
+#
+# HOW TO RUN:
+#   ./run.sh                    # Uses the run.sh wrapper script
+#   ansible-playbook local.yml  # Direct execution (requires sudo)
+#
+# EXECUTION ORDER:
+#   1. pre_tasks  - Gather system info and detect hardware
+#   2. roles      - Install packages and configure system
+#   3. post_tasks - Display completion message with next steps
+#
+# HOW TO MODIFY:
+#   - Add new roles: Create folder in roles/, add to 'roles:' section below
+#   - Add pre/post setup: Add tasks to pre_tasks/post_tasks sections
+#   - Change target OS detection: Modify the Gathering Details task
+#
+# TAGS (run specific parts):
+#   ansible-playbook local.yml --tags base      # Only base role
+#   ansible-playbook local.yml --tags power     # Only power role
+#   ansible-playbook local.yml --tags packages  # Only package tasks
+#
+# =============================================================================
 
+- name: Configure System
+  hosts: localhost
+  connection: local       # Run locally, not via SSH
+  become: yes             # Run with sudo/root privileges
+
+  # ---------------------------------------------------------------------------
+  # VARIABLES
+  # Load all variables from group_vars/all.yml
+  # ---------------------------------------------------------------------------
   vars_files:
     - group_vars/all.yml
 
+  # ---------------------------------------------------------------------------
+  # PRE-TASKS
+  # These run BEFORE any roles. Used for system detection and initial setup.
+  # ---------------------------------------------------------------------------
   pre_tasks:
+    # Gather hardware info (CPU, RAM, network, etc.) for conditional logic
     - name: Gathering Details
       ansible.builtin.setup:
         gather_subset:
-          - hardware
-          - network
-          - virtual
+          - hardware    # CPU, memory info
+          - network     # Network interfaces
+          - virtual     # VM detection
 
+    # Detect if this is a laptop or desktop (Linux only)
+    # Used to conditionally apply power management settings
     - name: Get chassis type from hostnamectl (Linux)
       ansible.builtin.command: hostnamectl --json=short
       register: hostnamectl_output
-      changed_when: false
-      check_mode: false
+      changed_when: false      # Don't mark as changed (read-only command)
+      check_mode: false        # Run even in check mode (--check)
       when: ansible_facts['os_family'] != "Darwin"
 
+    # Parse the JSON output and extract chassis type
     - name: Set chassis fact (Linux)
       ansible.builtin.set_fact:
         detected_chassis: "{{ (hostnamectl_output.stdout | from_json).Chassis | default('unknown') }}"
       when: ansible_facts['os_family'] != "Darwin"
 
+    # macOS doesn't have hostnamectl, so detect MacBook from model name
     - name: Set chassis fact (macOS)
       ansible.builtin.set_fact:
         detected_chassis: "{{ 'laptop' if ansible_facts['model'] is defined and 'MacBook' in ansible_facts['model'] else 'desktop' }}"
       when: ansible_facts['os_family'] == "Darwin"
 
+    # Debug output for troubleshooting
     - name: Debug chassis
       ansible.builtin.debug:
         msg: "Chassis is: '{{ detected_chassis }}' - equals laptop: {{ detected_chassis == 'laptop' }}"
 
+    # Display all detected OS information
     - name: Detect Operating System
       ansible.builtin.debug:
-        msg:  |
+        msg: |
           OS Family: {{ ansible_facts['os_family'] }}
           Distribution: {{ ansible_facts['distribution'] }}
           Version: {{ ansible_facts['distribution_version'] }}
           Chassis: {{ detected_chassis }}
 
+    # Get the numeric UID of the primary user (needed for systemd user services)
     - name: Get primary user UID
       ansible.builtin.command: id -u {{ primary_user }}
       register: primary_user_uid
@@ -54,45 +99,63 @@
       ansible.builtin.set_fact:
         primary_user_uid: "{{ primary_user_uid.stdout }}"
 
+    # Enable the swayidle service for screen locking/power management
+    # This runs as a user service, not system service
     - name: Enable swayidle user service (Linux only)
       ansible.builtin.systemd:
         name: swayidle.service
         enabled: yes
         state: started
-        scope: user
+        scope: user           # User service, not system
       become: yes
       become_user: "{{ primary_user }}"
       environment:
+        # Required for user systemd services
         XDG_RUNTIME_DIR: "/run/user/{{ primary_user_uid }}"
-      ignore_errors: yes
+      ignore_errors: yes      # Don't fail if swayidle not yet installed
       when: ansible_facts['os_family'] != "Darwin"
 
+  # ---------------------------------------------------------------------------
+  # ROLES
+  # Main configuration happens here. Each role is a self-contained unit.
+  # ---------------------------------------------------------------------------
   roles:
+    # Base role: Installs packages, AUR support, and optional tools
     - role: base
       tags: [base, packages]
 
+    # SSH role: Hardens SSH configuration (currently disabled)
+    # Uncomment to enable SSH hardening
 #    - role: ssh
 #      tags: [ssh, security]
 
-#    - role: fingerprint  
+    # Fingerprint role: Configures fingerprint authentication (currently disabled)
+    # Uncomment to enable fingerprint auth for sudo/login
+#    - role: fingerprint
 #      tags: [fingerprint, auth]
-#     when: fingerprint_enabled | default(true)
+#      when: fingerprint_enabled | default(true)
 
+    # Power role: Laptop power management (lid close, idle timeout, etc.)
+    # Only runs on Linux laptops (or if force_power_management is true)
     - role: power
       tags: [power, laptop]
       when:
-        - ansible_facts['os_family'] != "Darwin"
+        - ansible_facts['os_family'] != "Darwin"    # Not macOS
         - detected_chassis == 'laptop' or force_power_management | default(false)
 
+  # ---------------------------------------------------------------------------
+  # POST-TASKS
+  # These run AFTER all roles. Used for final setup and user instructions.
+  # ---------------------------------------------------------------------------
   post_tasks:
     - name: Final message
       ansible.builtin.debug:
         msg: |
           ========================================
           System configuration complete!
-          
+
           Chassis detected: {{ detected_chassis }}
-          
+
           NEXT STEPS:
           1. Add SSH public key to ~/.ssh/authorized_keys
           2. Run 'fprintd-enroll' to register fingerprint

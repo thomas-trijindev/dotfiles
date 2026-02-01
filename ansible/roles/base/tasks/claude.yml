@@ -1,17 +1,47 @@
 ---
 # =============================================================================
-# Claude Code installation
+# CLAUDE CODE INSTALLATION - roles/base/tasks/claude.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Install Claude Code, Anthropic's AI-powered coding assistant CLI tool.
+#   This provides AI assistance directly in your terminal.
+#
+# WHAT IS CLAUDE CODE?
+#   Claude Code is a command-line interface for interacting with Claude,
+#   Anthropic's AI assistant. It can help with coding tasks, answer questions,
+#   and assist with various programming tasks.
+#   https://claude.ai
+#
+# POST-INSTALL STEPS (manual):
+#   1. Run 'claude' to start the CLI
+#   2. Follow the prompts to authenticate
+#
+# FEATURE FLAG:
+#   Controlled by 'install_claude' variable in group_vars/all.yml
+#   Set to 'false' to skip Claude Code installation
+#
+# NOTE:
+#   - This task file only runs when install_claude is true (controlled by main.yml)
+#   - The installer runs as the primary user, not root
+#   - Works on all supported platforms (Linux and macOS)
+#
 # =============================================================================
 
+# Check if claude is already installed
+# Avoids re-running the installer if already present
 - name: Check if Claude Code is installed
   ansible.builtin.command: which claude
   register: claude_check
   changed_when: false
   failed_when: false
 
+# Download and run the official Claude Code installer
+# The installer handles platform detection and installation location
+# Must run as the primary user (not root) to install in user context
 - name: Install Claude Code
   ansible.builtin.shell: |
     curl -fsSL https://claude.ai/install.sh | bash
   become: yes
-  become_user: "{{ primary_user }}"
-  when: claude_check.rc != 0
+  become_user: "{{ primary_user }}"    # Run as regular user, not root
+  when: claude_check.rc != 0           # Only if not already installed

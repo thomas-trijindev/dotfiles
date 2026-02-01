@@ -1,18 +1,66 @@
-# Power management for systemd-logind
-# Managed by Ansible
+# =============================================================================
+# SYSTEMD-LOGIND POWER CONFIGURATION
+# =============================================================================
+#
+# FILE: /etc/systemd/logind.conf.d/50-power.conf
+#
+# PURPOSE:
+#   Configure system-level power management behavior for:
+#   - Lid close events (on AC, battery, and docked)
+#   - Power button press
+#   - Suspend key
+#   - System idle actions
+#
+# MANAGED BY: Ansible (roles/power/tasks/main.yml)
+# TEMPLATE: roles/power/templates/power.conf.j2
+# VARIABLES: group_vars/all.yml (POWER MANAGEMENT section)
+#
+# VALID VALUES FOR ACTIONS:
+#   ignore    - Do nothing
+#   lock      - Lock the session
+#   suspend   - Suspend to RAM (sleep)
+#   hibernate - Suspend to disk
+#   poweroff  - Shut down the system
+#   reboot    - Reboot the system
+#   halt      - Halt without powering off (rare)
+#   kexec     - Reboot via kexec (rare)
+#
+# TO MANUALLY TEST CHANGES:
+#   sudo systemctl restart systemd-logind
+#
+# WARNING: Restarting logind will log out all users!
+#
+# =============================================================================
 
 [Login]
+# What to do when laptop lid is closed (on battery power)
 HandleLidSwitch={{ lid_switch_on_battery }}
+
+# What to do when laptop lid is closed (on AC power)
 HandleLidSwitchExternalPower={{ lid_switch_on_ac }}
+
+# What to do when laptop lid is closed while docked (external monitor)
 HandleLidSwitchDocked={{ lid_switch_docked }}
+
+# What to do when the power button is pressed
 HandlePowerKey={{ power_key_action }}
+
+# What to do when a suspend key is pressed (if hardware has one)
 HandleSuspendKey=suspend
 
 
 {% if idle_action != 'ignore' %}
+# What to do after the system has been idle
+# Note: swayidle handles screen-level idle, this is system-level
 IdleAction={{ idle_action }}
+
+# How long to wait before triggering idle action
 IdleActionSec={{ idle_action_sec }}
 {% endif %}
 
+# Don't let applications inhibit lid switch actions
+# Set to 'yes' to allow apps (like video players) to prevent suspend on lid close
 LidSwitchIgnoreInhibited=no
+
+# Max delay when an inhibitor is active (e.g., during shutdown)
 InhibitDelayMaxSec=5

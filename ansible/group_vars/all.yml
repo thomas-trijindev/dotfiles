@@ -1,105 +1,195 @@
 ---
 # =============================================================================
+# GLOBAL VARIABLES - group_vars/all.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Central configuration file for all Ansible variables. Change settings here
+#   to customize what gets installed and how your system is configured.
+#
+# HOW THIS FILE WORKS:
+#   - Variables defined here are available in ALL tasks and templates
+#   - You can override these with command line: -e "variable=value"
+#   - More specific group_vars files would override these (e.g., group_vars/laptops.yml)
+#
+# SECTIONS:
+#   1. User Configuration     - Who the playbook configures
+#   2. Feature Flags          - Toggle optional software installations
+#   3. Packages               - Lists of packages per distribution
+#   4. SSH Configuration      - SSH hardening settings (if ssh role enabled)
+#   5. Fingerprint Config     - Fingerprint auth settings (if enabled)
+#   6. Power Management       - Laptop lid/idle/power button behavior
+#
+# =============================================================================
+
+
+# =============================================================================
 # USER CONFIGURATION
 # =============================================================================
+# Who is the primary user to configure? This user will:
+#   - Own installed user services
+#   - Be added to necessary groups (nordvpn, etc.)
+#   - Have chezmoi/dotfiles configured
+#
+# Uses $USER environment variable, falls back to 'tjunkie' if not set
 
 primary_user: "{{ lookup('env', 'USER') | default('tjunkie', true) }}"
 
+# Enable fingerprint authentication for sudo/login?
+# Requires fprintd package and enrolled fingerprint
 enable_fingerprint: true
+
+# Force power management role even on desktops?
+# Set to true if you want laptop-style power settings on a desktop
 force_power_management: false
+
 
 # =============================================================================
 # FEATURE FLAGS
 # =============================================================================
+# Toggle optional software installations on/off.
+# Set to 'false' to skip installation of that component.
+#
+# HOW TO OVERRIDE ON COMMAND LINE:
+#   ansible-playbook local.yml -e "install_nordvpn=false"
 
+# NordVPN - VPN client (installs GUI version on Arch via AUR)
 install_nordvpn: true
+
+# chezmoi - Dotfiles manager (https://chezmoi.io)
+# After install, run: chezmoi init --apply <your-github-username>
 install_chezmoi: true
+
+# Claude Code - Anthropic's AI coding assistant CLI
 install_claude: true
+
 
 # =============================================================================
 # PACKAGES
 # =============================================================================
+# Package lists organized by distribution. Each distro installs:
+#   packages_common + packages_<distro>
+#
+# HOW TO ADD PACKAGES:
+#   1. Add to packages_common for all distros (if package name is same)
+#   2. Add to distro-specific list if name differs or not available everywhere
+#
+# PACKAGE NAME DIFFERENCES:
+#   Some packages have different names on different distros:
+#   - fd: 'fd' on Arch/macOS, 'fd-find' on Fedora/Ubuntu
+#   - ripgrep: 'ripgrep' everywhere, but command is 'rg'
 
+# Packages installed on ALL distributions
 packages_common:
-  - git
-  - curl
-  - wget
-  - btop
-  - tmux
-  - neovim
-  - ripgrep
-  - fzf
-  - unzip
-  - jq
+  - git       # Version control
+  - curl      # URL transfer tool
+  - wget      # URL downloader
+  - btop      # Resource monitor (better than htop)
+  - tmux      # Terminal multiplexer
+  - neovim    # Modern vim editor
+  - ripgrep   # Fast grep replacement (command: rg)
+  - fzf       # Fuzzy finder
+  - unzip     # Archive extraction
+  - jq        # JSON processor
 
+# Arch Linux / CachyOS specific packages
 packages_arch:
-  - fd
-  - bat
-  - eza
-  - swayidle
+  - fd        # Fast find replacement
+  - bat       # Cat with syntax highlighting
+  - eza       # Modern ls replacement
+  - swayidle  # Idle manager for Wayland
 
+# AUR packages (Arch only)
+# These are built from source using paru
+# WARNING: AUR packages can take a long time to build
 packages_aur: []
 
+# Fedora specific packages
 packages_fedora:
-  - fd-find
-  - bat
+  - fd-find   # Fast find (different package name)
+  - bat       # Cat with syntax highlighting
 
+# Ubuntu/Debian specific packages
 packages_ubuntu:
-  - fd-find
-  - bat
+  - fd-find   # Fast find (different package name)
+  - bat       # Cat with syntax highlighting
 
+# macOS specific packages (via Homebrew)
 packages_macos:
-  - fd
-  - bat
-  - eza
+  - fd        # Fast find replacement
+  - bat       # Cat with syntax highlighting
+  - eza       # Modern ls replacement
+
 
 # =============================================================================
 # SSH CONFIGURATION
 # =============================================================================
+# Settings for the SSH role (currently disabled in local.yml)
+# These harden SSH by disabling password auth and limiting access
+#
+# TO ENABLE: Uncomment the ssh role in local.yml
 
-ssh_port: 22
-ssh_permit_root_login: "no"
-ssh_password_authentication: "no"
-ssh_pubkey_authentication: "yes"
-ssh_challenge_response: "no"
-ssh_use_pam: "yes"
+ssh_port: 22                           # SSH port (consider changing for security)
+ssh_permit_root_login: "no"            # Disable root SSH login
+ssh_password_authentication: "no"      # Require SSH keys, no passwords
+ssh_pubkey_authentication: "yes"       # Enable public key authentication
+ssh_challenge_response: "no"           # Disable challenge-response auth
+ssh_use_pam: "yes"                     # Use PAM for authentication
 
-ssh_max_auth_tries: 3
-ssh_max_sessions: 5
-ssh_client_alive_interval: 300
-ssh_client_alive_count_max: 2
+ssh_max_auth_tries: 3                  # Max failed auth attempts
+ssh_max_sessions: 5                    # Max concurrent sessions
+ssh_client_alive_interval: 300         # Send keepalive every 5 minutes
+ssh_client_alive_count_max: 2          # Disconnect after 2 missed keepalives
 
+# Users allowed to SSH into this machine
 ssh_allowed_users:
   - "{{ primary_user }}"
+
 
 # =============================================================================
 # FINGERPRINT CONFIGURATION
 # =============================================================================
+# Which PAM services should accept fingerprint authentication?
+# These are the services that will prompt for fingerprint instead of password
+#
+# TO ENABLE: Uncomment the fingerprint role in local.yml
 
 fingerprint_pam_services:
-  - sudo
-  - login
-  - polkit-1
+  - sudo      # Use fingerprint for sudo commands
+  - login     # Use fingerprint for console login
+  - polkit-1  # Use fingerprint for privilege escalation dialogs
+
 
 # =============================================================================
 # POWER MANAGEMENT
 # =============================================================================
+# Controls laptop behavior for lid close, idle timeout, and power button.
+# These settings are applied via systemd-logind and swayidle.
+#
+# VALID VALUES for lid_switch and idle_action:
+#   ignore    - Do nothing
+#   lock      - Lock the screen
+#   suspend   - Suspend to RAM
+#   hibernate - Suspend to disk
+#   poweroff  - Shut down
+#
+# NOTE: These only apply on Linux laptops (or if force_power_management=true)
 
-# Lid close behavior
-lid_switch_on_ac: lock           # Display off, no suspend
-lid_switch_on_battery: suspend   # Suspend on battery
+# What to do when the laptop lid is closed
+lid_switch_on_ac: lock               # On AC power: just lock screen
+lid_switch_on_battery: suspend       # On battery: suspend to save power
 
-# Lid open / idle behavior (handled separately via systemd)
+# What to do when system is idle (no user activity)
+# This is handled by systemd-logind directly
 idle_action_on_ac: lock
-idle_action: ignore
-idle_action_sec_on_ac: 5min      # Display off after 5 mins on AC
-
+idle_action: ignore                  # Default idle action (set to ignore, swayidle handles this)
+idle_action_sec_on_ac: 5min          # How long until idle triggers (on AC)
 
 idle_action_on_battery: suspend
-idle_action_sec_on_battery: 10min  # Suspend after 10 mins on battery
+idle_action_sec_on_battery: 10min    # How long until idle triggers (on battery)
 
-# Docked behavior
-lid_switch_docked: ignore
+# What to do when lid is closed while docked (external display connected)
+lid_switch_docked: ignore            # Ignore lid when docked (use external display)
 
-# Power button
-power_key_action: poweroff
+# What to do when power button is pressed
+power_key_action: poweroff           # Shut down when power button pressed

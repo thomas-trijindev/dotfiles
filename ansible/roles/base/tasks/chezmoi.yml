@@ -1,13 +1,46 @@
 ---
 # =============================================================================
-# chezmoi installation
+# CHEZMOI INSTALLATION - roles/base/tasks/chezmoi.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Install chezmoi, a dotfiles manager that helps you manage your personal
+#   configuration files across multiple machines.
+#
+# WHAT IS CHEZMOI?
+#   Chezmoi helps you manage your dotfiles (config files in your home directory)
+#   by tracking them in a git repository and providing tools to apply them to
+#   any machine. https://chezmoi.io
+#
+# POST-INSTALL STEPS (manual):
+#   1. Initialize with your dotfiles repo:
+#      chezmoi init --apply <github-username>
+#
+#   2. Or initialize without applying:
+#      chezmoi init <github-username>
+#      chezmoi diff    # Review changes
+#      chezmoi apply   # Apply changes
+#
+# FEATURE FLAG:
+#   Controlled by 'install_chezmoi' variable in group_vars/all.yml
+#   Set to 'false' to skip chezmoi installation
+#
+# NOTE: This task file only runs when install_chezmoi is true (controlled by main.yml)
+#
 # =============================================================================
 
+# Check if chezmoi is already installed (all platforms)
+# This check runs on all systems to avoid unnecessary installation
 - name: Check if chezmoi is installed
   ansible.builtin.command: which chezmoi
   register: chezmoi_check
   changed_when: false
   failed_when: false
+
+# -----------------------------------------------------------------------------
+# ARCH/CACHYOS
+# -----------------------------------------------------------------------------
+# chezmoi is available in the official Arch repos
 
 - name: Install chezmoi (Arch/CachyOS)
   community.general.pacman:
@@ -17,6 +50,11 @@
     - ansible_facts['os_family'] == "Archlinux"
     - chezmoi_check.rc != 0
 
+# -----------------------------------------------------------------------------
+# FEDORA
+# -----------------------------------------------------------------------------
+# chezmoi is available in the official Fedora repos
+
 - name: Install chezmoi (Fedora)
   ansible.builtin.dnf:
     name: chezmoi
@@ -25,15 +63,28 @@
     - ansible_facts['distribution'] == "Fedora"
     - chezmoi_check.rc != 0
 
+# -----------------------------------------------------------------------------
+# UBUNTU/DEBIAN
+# -----------------------------------------------------------------------------
+# chezmoi is NOT in the official Ubuntu/Debian repos, so we use the
+# official install script which downloads the latest binary
+
+# args.creates: Only run if the file doesn't exist (idempotent)
 - name: Install chezmoi (Ubuntu/Debian)
   ansible.builtin.shell: |
     sh -c "$(curl -fsLS get.chezmoi.io)" -- -b /usr/local/bin
   args:
-    creates: /usr/local/bin/chezmoi
+    creates: /usr/local/bin/chezmoi    # Skip if already installed
   when:
     - ansible_facts['os_family'] == "Debian"
     - chezmoi_check.rc != 0
 
+# -----------------------------------------------------------------------------
+# MACOS
+# -----------------------------------------------------------------------------
+# chezmoi is available via Homebrew
+
+# become: no - Homebrew should NOT be run as root
 - name: Install chezmoi (macOS)
   community.general.homebrew:
     name: chezmoi

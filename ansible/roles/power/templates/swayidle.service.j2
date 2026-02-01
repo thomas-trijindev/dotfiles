@@ -1,17 +1,79 @@
+# =============================================================================
+# SWAYIDLE SYSTEMD USER SERVICE
+# =============================================================================
+#
+# FILE: ~/.config/systemd/user/swayidle.service
+#
+# PURPOSE:
+#   Run swayidle as a user service to manage idle behavior in Wayland sessions.
+#   swayidle monitors for user inactivity and triggers actions like:
+#   - Locking the screen after timeout
+#   - Turning off monitors after extended idle
+#   - Locking before system sleep
+#
+# MANAGED BY: Ansible (roles/power/tasks/main.yml)
+# TEMPLATE: roles/power/templates/swayidle.service.j2
+#
+# COMMANDS USED:
+#   - qs: Quickshell IPC for lock screen (noctalia-shell)
+#   - niri msg: Niri compositor commands for screen transitions
+#
+# TO CUSTOMIZE:
+#   1. Modify the timeout values (in seconds) below
+#   2. Change the lock/unlock commands to match your setup
+#   3. Run: systemctl --user daemon-reload && systemctl --user restart swayidle
+#
+# TIMEOUT ACTIONS (current config):
+#   120 seconds (2 min):  Lock screen and turn off monitors
+#   On resume:            Turn monitors back on
+#   On lock event:        Lock screen
+#   Before sleep:         Lock screen
+#
+# TO START/ENABLE MANUALLY:
+#   systemctl --user enable swayidle.service
+#   systemctl --user start swayidle.service
+#
+# TO CHECK STATUS:
+#   systemctl --user status swayidle.service
+#   journalctl --user -u swayidle.service
+#
+# =============================================================================
+
 [Unit]
 Description=Idle manager for Wayland
 Documentation=man:swayidle(1)
+# Only run during graphical session
 PartOf=graphical-session.target
 
 [Service]
 Type=simple
+# -w flag: Wait for command to finish before continuing (important for lock)
+#
+# TIMEOUT BREAKDOWN:
+#   timeout 120 '...'  - After 120 seconds idle:
+#     1. Lock screen via quickshell IPC
+#     2. Start screen transition animation
+#     3. Power off monitors
+#
+#   resume '...'       - When user activity detected:
+#     1. Power monitors back on
+#
+#   lock '...'         - When lock event triggered (e.g., loginctl lock-session):
+#     1. Lock screen via quickshell IPC
+#
+#   before-sleep '...' - Before system suspends:
+#     1. Lock screen via quickshell IPC
+#
 ExecStart=/usr/bin/swayidle -w \
     timeout 120 'qs -c noctalia-shell ipc call lockScreen lock; niri msg action do-screen-transition && niri msg action power-off-monitors' \
     resume 'niri msg action power-on-monitors' \
     lock 'qs -c noctalia-shell ipc call lockScreen lock' \
     before-sleep 'qs -c noctalia-shell ipc call lockScreen lock'
+
+# Restart if swayidle crashes
 Restart=on-failure
 RestartSec=5
 
 [Install]
+# Start with graphical session
 WantedBy=graphical-session.target

@@ -1,26 +1,64 @@
 ---
 # =============================================================================
-# AUR support (Arch/CachyOS only)
+# AUR SUPPORT - roles/base/tasks/aur.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Set up Arch User Repository (AUR) support by installing the paru
+#   AUR helper and then installing any AUR packages defined in packages_aur.
+#
+# WHAT IS AUR?
+#   The Arch User Repository is a community-driven repository of build scripts
+#   (PKGBUILDs) for packages not in the official repos. Packages are built
+#   from source on your machine.
+#
+# WHAT IS PARU?
+#   Paru is an AUR helper that automates the process of downloading PKGBUILDs,
+#   building packages, and installing them. It's a Rust-based successor to yay.
+#   https://github.com/Morganamilo/paru
+#
+# WARNING:
+#   AUR packages are community-maintained and NOT officially supported by Arch.
+#   Review PKGBUILDs before installing packages from AUR.
+#   Build times can be very long for some packages.
+#
+# HOW TO ADD AUR PACKAGES:
+#   1. Open group_vars/all.yml
+#   2. Add package name to packages_aur list
+#   3. Run playbook
+#
+# NOTE: This file only runs on Arch-based systems (controlled by main.yml)
+#
 # =============================================================================
 
-# -----------------------------------------------------------------------------
-# Install paru AUR helper
-# -----------------------------------------------------------------------------
 
+# -----------------------------------------------------------------------------
+# INSTALL PARU AUR HELPER
+# -----------------------------------------------------------------------------
+# Paru must be installed first before we can install AUR packages.
+# Since paru is itself an AUR package, we have to bootstrap it manually.
+
+# Check if paru is already installed to avoid unnecessary work
 - name: Check if paru is installed
   ansible.builtin.command: which paru
   register: paru_check
-  changed_when: false
-  failed_when: false
+  changed_when: false      # Never mark as changed (read-only check)
+  failed_when: false       # Don't fail if paru not found
 
+# Install build dependencies needed to compile paru
+# base-devel: Contains make, gcc, and other build tools
+# git: Needed to clone the paru repository
 - name: Install paru dependencies
   community.general.pacman:
     name:
       - base-devel
       - git
     state: present
-  when: paru_check.rc != 0
+  when: paru_check.rc != 0    # Only if paru not found
 
+# Clone the paru-bin package from AUR
+# paru-bin is a pre-compiled binary version (faster to install than building from source)
+# Must run as non-root user for makepkg
 - name: Clone paru repository
   ansible.builtin.git:
     repo: https://aur.archlinux.org/paru-bin.git
@@ -30,6 +68,10 @@
   become_user: "{{ primary_user }}"
   when: paru_check.rc != 0
 
+# Build and install paru
+# makepkg -si: Build package (-s) and install (-i) with dependencies
+# --noconfirm: Don't prompt for confirmation
+# Must run as non-root user
 - name: Build and install paru
   ansible.builtin.command:
     cmd: makepkg -si --noconfirm
@@ -38,10 +80,15 @@
   become_user: "{{ primary_user }}"
   when: paru_check.rc != 0
 
-# -----------------------------------------------------------------------------
-# Install AUR packages
-# -----------------------------------------------------------------------------
 
+# -----------------------------------------------------------------------------
+# INSTALL AUR PACKAGES
+# -----------------------------------------------------------------------------
+# Now that paru is installed, we can install AUR packages.
+# This section only runs if packages_aur is defined and not empty.
+
+# First, check which AUR packages are not already installed
+# This avoids unnecessary rebuilds of already-installed packages
 - name: Check which AUR packages need installation
   ansible.builtin.shell: |
     for pkg in {{ packages_aur | join(' ') }}; do
@@ -55,6 +102,7 @@
     - packages_aur is defined
     - packages_aur | length > 0
 
+# Create a temporary directory for building AUR packages
 - name: Create AUR build directory
   ansible.builtin.file:
     path: "/tmp/aur_builds"
@@ -63,6 +111,7 @@
     mode: '0755'
   when: aur_packages_needed.stdout_lines | default([]) | length > 0
 
+# Clone each needed AUR package repository
 - name: Clone AUR packages
   ansible.builtin.git:
     repo: "https://aur.archlinux.org/{{ item }}.git"
@@ -73,6 +122,10 @@
   become_user: "{{ primary_user }}"
   when: aur_packages_needed.stdout_lines | default([]) | length > 0
 
+# Build each AUR package
+# makepkg -s: Resolve and install dependencies
+# --noconfirm: Don't prompt for confirmation
+# --needed: Don't rebuild if already installed
 - name: Build AUR packages
   ansible.builtin.shell: |
     cd /tmp/aur_builds/{{ item }} && makepkg -s --noconfirm --needed
@@ -81,6 +134,7 @@
   become_user: "{{ primary_user }}"
   when: aur_packages_needed.stdout_lines | default([]) | length > 0
 
+# Find all built package files (.pkg.tar.zst)
 - name: Find built AUR packages
   ansible.builtin.find:
     paths: "/tmp/aur_builds"
@@ -89,6 +143,8 @@
   register: built_packages
   when: aur_packages_needed.stdout_lines | default([]) | length > 0
 
+# Install all built packages using pacman
+# This requires root, which is why we use the pacman module
 - name: Install built AUR packages
   community.general.pacman:
     name: "{{ built_packages.files | map(attribute='path') | list }}"
