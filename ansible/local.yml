@@ -51,8 +51,8 @@
 
     - role: power
       tags: [power, laptop]
-      when: ansible_chassis_type | default('') == 'laptop' or force_power_management | default(false)
-
+      when: detected_chassis == 'laptop' or force_power_management | default(false)
+      
   post_tasks:
     - name: Final message
       ansible.builtin.debug:
