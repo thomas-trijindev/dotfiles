@@ -3,7 +3,7 @@
 # USER CONFIGURATION
 # =============================================================================
 
-primary_user: "{{ lookup('env', 'USER') | default('your_username', true) }}"
+primary_user: "{{ lookup('env', 'USER') | default('tjunkie', true) }}"
 
 enable_fingerprint: true
 force_power_management: false
@@ -28,7 +28,8 @@ packages_arch:
   - fd
   - bat
   - eza
-
+  - swaylock
+  - swayidle
 
 packages_fedora:
   - fd-find

@@ -38,6 +38,28 @@
           Version: {{ ansible_facts['distribution_version'] }}
           Chassis: {{ detected_chassis }}
 
+    - name: Get primary user UID
+      ansible.builtin.command: id -u {{ primary_user }}
+      register: primary_user_uid
+      changed_when: false
+      check_mode: false
+
+    - name: Set user UID fact
+      ansible.builtin.set_fact:
+        primary_user_uid: "{{ primary_user_uid.stdout }}"
+
+    - name: Enable swayidle user service
+      ansible.builtin.systemd:
+        name: swayidle.service
+        enabled: yes
+        state: started
+        scope: user
+      become: yes
+      become_user: "{{ primary_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ primary_user_uid }}"
+      ignore_errors: yes
+
   roles:
     - role: base
       tags: [base, packages]
@@ -52,7 +74,7 @@
     - role: power
       tags: [power, laptop]
       when: detected_chassis == 'laptop' or force_power_management | default(false)
-      
+
   post_tasks:
     - name: Final message
       ansible.builtin.debug:

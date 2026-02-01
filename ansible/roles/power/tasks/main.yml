@@ -40,6 +40,22 @@
     state: started
   ignore_errors: yes
 
+- name: Create swayidle user systemd directory
+  ansible.builtin.file:
+    path: "/home/{{ primary_user }}/.config/systemd/user"
+    state: directory
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: '0755'
+
+- name: Deploy swayidle systemd user service
+  ansible.builtin.template:
+    src: swayidle.service.j2
+    dest: "/home/{{ primary_user }}/.config/systemd/user/swayidle.service"
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: '0644'  
+
 - name: Display power configuration
   ansible.builtin.debug:
     msg: |
@@ -47,3 +63,4 @@
         Lid close (AC): {{ lid_switch_on_ac }}
         Lid close (battery): {{ lid_switch_on_battery }}
         Power button: {{ power_key_action }}
+        SwayIdle: enabled for user {{ primary_user }}
