@@ -26,6 +26,9 @@
       ansible.builtin.set_fact:
         detected_chassis: "{{ (hostnamectl_output.stdout | from_json).Chassis | default('unknown') }}"
       
+    - name: Debug chassis
+      ansible.builtin.debug:
+        msg: "Chassis is: '{{ detected_chassis }}' - equals laptop: {{ detected_chassis == 'laptop' }}"
 
     - name: Detect Operating System
       ansible.builtin.debug:
