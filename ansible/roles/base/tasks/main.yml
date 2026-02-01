@@ -46,6 +46,131 @@
   when: ansible_facts['os_family'] == "Darwin"
   become: no
 
+- name: Check if paru is installed (Arch/CachyOS)
+  ansible.builtin.command: which paru
+  register: paru_check
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['os_family'] == "Archlinux"
+
+- name: Install paru dependencies (Arch/CachyOS)
+  community.general.pacman:
+    name:
+      - base-devel
+      - git
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Archlinux"
+    - paru_check.rc != 0
+
+- name: Clone paru repository (Arch/CachyOS)
+  ansible.builtin.git:
+    repo: https://aur.archlinux.org/paru-bin.git
+    dest: /tmp/paru-bin
+    version: master
+  become: yes
+  become_user: "{{ primary_user }}"
+  when:
+    - ansible_facts['os_family'] == "Archlinux"
+    - paru_check.rc != 0
+
+- name: Build and install paru (Arch/CachyOS)
+  ansible.builtin.command:
+    cmd: makepkg -si --noconfirm
+    chdir: /tmp/paru-bin
+  become: yes
+  become_user: "{{ primary_user }}"
+  when:
+    - ansible_facts['os_family'] == "Archlinux"
+    - paru_check.rc != 0
+
+- name: Install AUR packages (Arch/CachyOS)
+  ansible.builtin.command:
+    cmd: "paru -S --noconfirm --needed {{ packages_aur | join(' ') }}"
+  become: yes
+  become_user: "{{ primary_user }}"
+  when:
+    - ansible_facts['os_family'] == "Archlinux"
+    - packages_aur is defined
+    - packages_aur | length > 0
+  register: aur_install
+  changed_when: "'installing' in aur_install.stdout or 'reinstalling' in aur_install.stdout"
+
+- name: Enable nordvpnd service (Arch/CachyOS)
+  ansible.builtin.systemd:
+    name: nordvpnd
+    enabled: yes
+    state: started
+  when:
+    - ansible_facts['os_family'] == "Archlinux"
+    - "'nordvpn-bin' in packages_aur"
+
+- name: Check if NordVPN is installed (Fedora)
+  ansible.builtin.command: which nordvpn
+  register: nordvpn_check_fedora
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['distribution'] == "Fedora"
+
+- name: Install NordVPN repository (Fedora)
+  ansible.builtin.shell: |
+    sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh) -n
+  when:
+    - ansible_facts['distribution'] == "Fedora"
+    - nordvpn_check_fedora.rc != 0
+
+- name: Install NordVPN (Fedora)
+  ansible.builtin.dnf:
+    name: nordvpn
+    state: present
+  when:
+    - ansible_facts['distribution'] == "Fedora"
+    - nordvpn_check_fedora.rc != 0
+
+- name: Enable nordvpnd service (Fedora)
+  ansible.builtin.systemd:
+    name: nordvpnd
+    enabled: yes
+    state: started
+  when: ansible_facts['distribution'] == "Fedora"
+
+- name: Check if NordVPN is installed (Ubuntu/Debian)
+  ansible.builtin.command: which nordvpn
+  register: nordvpn_check_debian
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install NordVPN repository (Ubuntu/Debian)
+  ansible.builtin.shell: |
+    sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh) -n
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - nordvpn_check_debian.rc != 0
+
+- name: Install NordVPN (Ubuntu/Debian)
+  ansible.builtin.apt:
+    name: nordvpn
+    state: present
+    update_cache: yes
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - nordvpn_check_debian.rc != 0
+
+- name: Enable nordvpnd service (Ubuntu/Debian)
+  ansible.builtin.systemd:
+    name: nordvpnd
+    enabled: yes
+    state: started
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install NordVPN (macOS)
+  community.general.homebrew_cask:
+    name: nordvpn
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+  become: no
+
 - name: Check if chezmoi is installed
   ansible.builtin.command: which chezmoi
   register: chezmoi_check

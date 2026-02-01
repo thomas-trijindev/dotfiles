@@ -30,6 +30,9 @@ packages_arch:
   - eza
   - swayidle
 
+packages_aur:
+  - nordvpn-bin
+
 packages_fedora:
   - fd-find
   - bat
