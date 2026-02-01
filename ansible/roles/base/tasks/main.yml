@@ -85,16 +85,16 @@
     - paru_check.rc != 0
 
 - name: Install AUR packages (Arch/CachyOS)
-  ansible.builtin.command:
-    cmd: "paru -S --noconfirm --needed {{ packages_aur | join(' ') }}"
+  kewlfft.aur.aur:
+    name: "{{ packages_aur }}"
+    use: paru
+    state: present
   become: yes
   become_user: "{{ primary_user }}"
   when:
     - ansible_facts['os_family'] == "Archlinux"
     - packages_aur is defined
     - packages_aur | length > 0
-  register: aur_install
-  changed_when: "'installing' in aur_install.stdout or 'reinstalling' in aur_install.stdout"
 
 - name: Enable nordvpnd service (Arch/CachyOS)
   ansible.builtin.systemd:
