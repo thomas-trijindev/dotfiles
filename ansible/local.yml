@@ -15,6 +15,16 @@
           - network
           - virtual
 
+    - name: Get chassis type from hostnamectl
+      ansible.builtin.command: hostnamectl --json=short
+      register: hostnamectl_output
+      changed_when: false
+
+    - name: Set chassis fact
+      ansible.builtin.set_fact:
+        detected_chassis: "{{ (hostnamectl_output.stdout | from_json).Chassis | default('unknown') }}"
+      
+
     - name: Detect Operating System
       ansible.builtin.debug:
         msg:  |
@@ -37,3 +47,20 @@
 #    - role: power
 #      tags: [power, laptop]
 #      when: ansible_chassis_type | default('') == 'laptop' or force_power_management | default(false)
+
+  post_tasks:
+    - name: Final message
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          System configuration complete!
+          
+          Chassis detected: {{ detected_chassis }}
+          
+          NEXT STEPS:
+          1. Add SSH public key to ~/.ssh/authorized_keys
+          2. Run 'fprintd-enroll' to register fingerprint
+          3. Test SSH login before disconnecting
+          4. Run 'chezmoi init --apply' as your user
+          5. Reboot to apply all changes
+          ========================================
