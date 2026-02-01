@@ -1,0 +1,27 @@
+# Ansible
+*.retry
+/tmp/
+ansible/facts/
+
+# Local overrides
+*.local
+.envrc
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Secrets (never commit these!)
+*.key
+*.pem
+id_rsa*
+id_ed25519*
+secrets.yml
+vault.yml
