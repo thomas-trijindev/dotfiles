@@ -1,0 +1,18 @@
+# Power management for systemd-logind
+# Managed by Ansible
+
+[Login]
+HandleLidSwitch={{ lid_switch_on_battery }}
+HandleLidSwitchExternalPower={{ lid_switch_on_ac }}
+HandleLidSwitchDocked={{ lid_switch_docked }}
+HandlePowerKey={{ power_key_action }}
+HandleSuspendKey=suspend
+
+
+{% if idle_action != 'ignore' %}
+IdleAction={{ idle_action }}
+IdleActionSec={{ idle_action_sec }}
+{% endif %}
+
+LidSwitchIgnoreInhibited=no
+InhibitDelayMaxSec=5

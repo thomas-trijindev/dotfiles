@@ -1,0 +1,49 @@
+---
+- name: Ensure logind.conf.d directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/logind.conf.d
+    state: directory
+    mode: '0755'
+
+- name: Deploy logind power configuration
+  ansible.builtin.template:
+    src: power.conf.j2
+    dest: /etc/systemd/logind.conf.d/50-power.conf
+    mode: '0644'
+  notify: Restart systemd-logind
+
+- name: Install power-profiles-daemon (Arch)
+  community.general.pacman:
+    name: power-profiles-daemon
+    state: present
+  when: ansible_facts['os_family'] == "Archlinux"
+  ignore_errors: yes
+
+- name: Install power-profiles-daemon (Fedora)
+  ansible.builtin.dnf:
+    name: power-profiles-daemon
+    state: present
+  when: ansible_facts['distribution'] == "Fedora"
+  ignore_errors: yes
+
+- name: Install power-profiles-daemon (Ubuntu)
+  ansible.builtin.apt:
+    name: power-profiles-daemon
+    state: present
+  when: ansible_facts['os_family'] == "Debian"
+  ignore_errors: yes
+
+- name: Enable power-profiles-daemon
+  ansible.builtin.systemd:
+    name: power-profiles-daemon
+    enabled: yes
+    state: started
+  ignore_errors: yes
+
+- name: Display power configuration
+  ansible.builtin.debug:
+    msg: |
+      Power management configured:
+        Lid close (AC): {{ lid_switch_on_ac }}
+        Lid close (battery): {{ lid_switch_on_battery }}
+        Power button: {{ power_key_action }}

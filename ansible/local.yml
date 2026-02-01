@@ -46,9 +46,9 @@
 #      tags: [fingerprint, auth]
 #     when: fingerprint_enabled | default(true)
 
-#    - role: power
-#      tags: [power, laptop]
-#      when: ansible_chassis_type | default('') == 'laptop' or force_power_management | default(false)
+    - role: power
+      tags: [power, laptop]
+      when: ansible_chassis_type | default('') == 'laptop' or force_power_management | default(false)
 
   post_tasks:
     - name: Final message
