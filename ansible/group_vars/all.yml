@@ -28,7 +28,6 @@ packages_arch:
   - fd
   - bat
   - eza
-  - swaylock
   - swayidle
 
 packages_fedora:

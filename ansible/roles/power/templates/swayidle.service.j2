@@ -6,8 +6,8 @@ PartOf=graphical-session.target
 [Service]
 Type=simple
 ExecStart=/usr/bin/swayidle -w \
-    lock 'swaylock -f -c 000000' \
-    before-sleep 'swaylock -f -c 000000'
+    lock 'qs -c noctalia-shell ipc call lockScreen lock' \
+    before-sleep 'qs -c noctalia-shell ipc call lockScreen lock'
 Restart=on-failure
 RestartSec=5
 
