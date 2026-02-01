@@ -6,6 +6,8 @@ PartOf=graphical-session.target
 [Service]
 Type=simple
 ExecStart=/usr/bin/swayidle -w \
+    timeout 600 'niri msg action power-off-monitors' \
+    resume 'niri msg action power-on-monitors' \
     lock 'qs -c noctalia-shell ipc call lockScreen lock' \
     before-sleep 'qs -c noctalia-shell ipc call lockScreen lock'
 Restart=on-failure
