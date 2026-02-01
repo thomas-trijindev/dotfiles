@@ -77,7 +77,9 @@ lid_switch_on_battery: suspend   # Suspend on battery
 
 # Lid open / idle behavior (handled separately via systemd)
 idle_action_on_ac: lock
+idle_action: ignore
 idle_action_sec_on_ac: 5min      # Display off after 5 mins on AC
+
 
 idle_action_on_battery: suspend
 idle_action_sec_on_battery: 10min  # Suspend after 10 mins on battery
