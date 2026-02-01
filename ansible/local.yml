@@ -19,7 +19,8 @@
       ansible.builtin.command: hostnamectl --json=short
       register: hostnamectl_output
       changed_when: false
-      check_mode: false
+      # this ensures it runs even during --check so the variable gets populated.
+      check_mode: false 
 
     - name: Set chassis fact
       ansible.builtin.set_fact:
