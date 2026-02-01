@@ -1,0 +1,65 @@
+---
+- name: Update package cache (Arch/CachyOS)
+  community.general.pacman:
+    update_cache: yes
+  when: ansible_os_family == "Archlinux"
+
+- name: Update package cache (Fedora)
+  ansible.builtin.dnf:
+    update_cache: yes
+  when: ansible_distribution == "Fedora"
+
+- name: Update package cache (Ubuntu/Debian)
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Install packages (Arch/CachyOS)
+  community.general.pacman:
+    name: "{{ packages_common + packages_arch }}"
+    state: present
+  when: ansible_os_family == "Archlinux"
+
+- name: Install packages (Fedora)
+  ansible.builtin.dnf:
+    name: "{{ packages_common + packages_fedora }}"
+    state: present
+  when: ansible_distribution == "Fedora"
+
+- name: Install packages (Ubuntu/Debian)
+  ansible.builtin.apt:
+    name: "{{ packages_common + packages_ubuntu }}"
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Check if chezmoi is installed
+  ansible.builtin.command: which chezmoi
+  register: chezmoi_check
+  changed_when: false
+  failed_when: false
+
+- name: Install chezmoi (Arch/CachyOS)
+  community.general.pacman:
+    name: chezmoi
+    state: present
+  when:
+    - ansible_os_family == "Archlinux"
+    - chezmoi_check.rc != 0
+
+- name: Install chezmoi (Fedora)
+  ansible.builtin.dnf:
+    name: chezmoi
+    state: present
+  when:
+    - ansible_distribution == "Fedora"
+    - chezmoi_check.rc != 0
+
+- name: Install chezmoi (Ubuntu/Debian)
+  ansible.builtin.shell: |
+    sh -c "$(curl -fsLS get.chezmoi.io)" -- -b /usr/local/bin
+  args:
+    creates: /usr/local/bin/chezmoi
+  when:
+    - ansible_os_family == "Debian"
+    - chezmoi_check.rc != 0

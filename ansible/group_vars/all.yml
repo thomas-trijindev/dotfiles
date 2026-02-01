@@ -1,0 +1,89 @@
+---
+# =============================================================================
+# USER CONFIGURATION
+# =============================================================================
+
+primary_user: "{{ lookup('env', 'USER') | default('your_username', true) }}"
+
+enable_fingerprint: true
+force_power_management: false
+
+# =============================================================================
+# PACKAGES
+# =============================================================================
+
+packages_common:
+  - git
+  - curl
+  - wget
+  - btop
+  - tmux
+  - neovim
+  - ripgrep
+  - fzf
+  - unzip
+  - jq
+
+packages_arch:
+  - fd
+  - bat
+  - eza
+
+
+packages_fedora:
+  - fd-find
+  - bat
+
+packages_ubuntu:
+  - fd-find
+  - bat
+
+
+# =============================================================================
+# SSH CONFIGURATION
+# =============================================================================
+
+ssh_port: 22
+ssh_permit_root_login: "no"
+ssh_password_authentication: "no"
+ssh_pubkey_authentication: "yes"
+ssh_challenge_response: "no"
+ssh_use_pam: "yes"
+
+ssh_max_auth_tries: 3
+ssh_max_sessions: 5
+ssh_client_alive_interval: 300
+ssh_client_alive_count_max: 2
+
+ssh_allowed_users:
+  - "{{ primary_user }}"
+
+# =============================================================================
+# FINGERPRINT CONFIGURATION
+# =============================================================================
+
+fingerprint_pam_services:
+  - sudo
+  - login
+  - polkit-1
+
+# =============================================================================
+# POWER MANAGEMENT
+# =============================================================================
+
+# Lid close behavior
+#lid_switch_on_ac: lock           # Display off, no suspend
+#lid_switch_on_battery: suspend   # Suspend on battery
+
+# Lid open / idle behavior (handled separately via systemd)
+#idle_action_on_ac: lock
+#idle_action_sec_on_ac: 5min      # Display off after 5 mins on AC
+
+#idle_action_on_battery: suspend
+#idle_action_sec_on_battery: 10min  # Suspend after 10 mins on battery
+
+# Docked behavior
+#lid_switch_docked: ignore
+
+# Power button
+#power_key_action: poweroff

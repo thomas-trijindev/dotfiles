@@ -1,0 +1,39 @@
+---
+- name:  Configure System
+  hosts: localhost
+  connection: local
+  become: yes
+
+  vars_files:
+    - group_vars/all.yml
+
+  pre_tasks:
+    - name: Gathering Details
+      ansible.builtin.setup:
+        gather_subset:
+          - hardware
+          - network
+          - virtual
+
+    - name: Detect Operating System
+      ansible.builtin.debug:
+        msg:  |
+          Detected OS Family: {{ ansible_os_family }}
+          Detected Distribution: {{ ansible_distribution }}
+          Detected Version: {{ ditribution_version }}
+          Chassis: {{ansible_chassis_type | default('unknown')}}
+
+  roles:
+    - role: base
+      tags: [base, packages]
+
+#    - role: ssh
+#      tags: [ssh, security]
+
+#    - role: fingerprint  
+#      tags: [fingerprint, auth]
+#     when: fingerprint_enabled | default(true)
+
+#    - role: power
+#      tags: [power, laptop]
+#      when: ansible_chassis_type | default('') == 'laptop' or force_power_management | default(false)
