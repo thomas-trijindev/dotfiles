@@ -18,10 +18,10 @@
     - name: Detect Operating System
       ansible.builtin.debug:
         msg:  |
-          Detected OS Family: {{ ansible_os_family }}
-          Detected Distribution: {{ ansible_distribution }}
-          Detected Version: {{ ditribution_version }}
-          Chassis: {{ansible_chassis_type | default('unknown')}}
+          OS Family: {{ ansible_facts['os_family'] }}
+          Distribution: {{ ansible_facts['distribution'] }}
+          Version: {{ ansible_facts['distribution_version'] }}
+          Chassis: {{ ansible_facts['chassis_type'] | default('unknown') }}
 
   roles:
     - role: base
