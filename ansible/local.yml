@@ -15,17 +15,23 @@
           - network
           - virtual
 
-    - name: Get chassis type from hostnamectl
+    - name: Get chassis type from hostnamectl (Linux)
       ansible.builtin.command: hostnamectl --json=short
       register: hostnamectl_output
       changed_when: false
-      # this ensures it runs even during --check so the variable gets populated.
-      check_mode: false 
+      check_mode: false
+      when: ansible_facts['os_family'] != "Darwin"
 
-    - name: Set chassis fact
+    - name: Set chassis fact (Linux)
       ansible.builtin.set_fact:
         detected_chassis: "{{ (hostnamectl_output.stdout | from_json).Chassis | default('unknown') }}"
-      
+      when: ansible_facts['os_family'] != "Darwin"
+
+    - name: Set chassis fact (macOS)
+      ansible.builtin.set_fact:
+        detected_chassis: "{{ 'laptop' if ansible_facts['model'] is defined and 'MacBook' in ansible_facts['model'] else 'desktop' }}"
+      when: ansible_facts['os_family'] == "Darwin"
+
     - name: Debug chassis
       ansible.builtin.debug:
         msg: "Chassis is: '{{ detected_chassis }}' - equals laptop: {{ detected_chassis == 'laptop' }}"
@@ -48,7 +54,7 @@
       ansible.builtin.set_fact:
         primary_user_uid: "{{ primary_user_uid.stdout }}"
 
-    - name: Enable swayidle user service
+    - name: Enable swayidle user service (Linux only)
       ansible.builtin.systemd:
         name: swayidle.service
         enabled: yes
@@ -59,6 +65,7 @@
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ primary_user_uid }}"
       ignore_errors: yes
+      when: ansible_facts['os_family'] != "Darwin"
 
   roles:
     - role: base
@@ -73,7 +80,9 @@
 
     - role: power
       tags: [power, laptop]
-      when: detected_chassis == 'laptop' or force_power_management | default(false)
+      when:
+        - ansible_facts['os_family'] != "Darwin"
+        - detected_chassis == 'laptop' or force_power_management | default(false)
 
   post_tasks:
     - name: Final message

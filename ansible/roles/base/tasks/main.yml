@@ -15,6 +15,12 @@
     cache_valid_time: 3600
   when: ansible_facts['os_family'] == "Debian"
 
+- name: Update Homebrew (macOS)
+  community.general.homebrew:
+    update_homebrew: yes
+  when: ansible_facts['os_family'] == "Darwin"
+  become: no
+
 - name: Install packages (Arch/CachyOS)
   community.general.pacman:
     name: "{{ packages_common + packages_arch }}"
@@ -32,6 +38,13 @@
     name: "{{ packages_common + packages_ubuntu }}"
     state: present
   when: ansible_facts['os_family'] == "Debian"
+
+- name: Install packages (macOS)
+  community.general.homebrew:
+    name: "{{ packages_common + packages_macos }}"
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+  become: no
 
 - name: Check if chezmoi is installed
   ansible.builtin.command: which chezmoi
@@ -63,6 +76,15 @@
   when:
     - ansible_facts['os_family'] == "Debian"
     - chezmoi_check.rc != 0
+
+- name: Install chezmoi (macOS)
+  community.general.homebrew:
+    name: chezmoi
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - chezmoi_check.rc != 0
+  become: no
 
 - name: Check if Claude Code is installed
   ansible.builtin.command: which claude

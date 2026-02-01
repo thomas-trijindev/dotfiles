@@ -1,4 +1,6 @@
 ---
+
+# Ansible role to configure power management settings for laptops and desktops.
 - name: Ensure logind.conf.d directory exists
   ansible.builtin.file:
     path: /etc/systemd/logind.conf.d

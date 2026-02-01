@@ -38,6 +38,10 @@ packages_ubuntu:
   - fd-find
   - bat
 
+packages_macos:
+  - fd
+  - bat
+  - eza
 
 # =============================================================================
 # SSH CONFIGURATION
