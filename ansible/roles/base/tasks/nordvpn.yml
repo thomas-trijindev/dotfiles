@@ -30,7 +30,7 @@
 # -----------------------------------------------------------------------------
 # ARCH/CACHYOS (via AUR)
 # -----------------------------------------------------------------------------
-# On Arch, we install nordvpn-gui-bin from AUR which includes both the
+# On Arch/CachyOS, we install nordvpn-gui-bin from AUR which includes both the
 # CLI tool and the GUI application.
 
 # Check if nordvpn is already installed
