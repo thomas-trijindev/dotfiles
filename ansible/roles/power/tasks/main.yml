@@ -29,7 +29,6 @@
 #
 # =============================================================================
 
-
 # -----------------------------------------------------------------------------
 # SYSTEMD-LOGIND CONFIGURATION
 # -----------------------------------------------------------------------------
@@ -39,20 +38,19 @@
 # Files in this directory override settings in /etc/systemd/logind.conf
 - name: Ensure logind.conf.d directory exists
   ansible.builtin.file:
-    path: /etc/systemd/logind.conf.d
-    state: directory
-    mode: '0755'
+      path: /etc/systemd/logind.conf.d
+      state: directory
+      mode: "0755"
 
 # Deploy the power configuration template
 # Template variables are defined in group_vars/all.yml
 # Notifies handler to restart logind when changed
 - name: Deploy logind power configuration
   ansible.builtin.template:
-    src: power.conf.j2
-    dest: /etc/systemd/logind.conf.d/50-power.conf
-    mode: '0644'
-  notify: Restart systemd-logind    # Restart to apply changes
-
+      src: power.conf.j2
+      dest: /etc/systemd/logind.conf.d/50-power.conf
+      mode: "0644"
+  notify: Restart systemd-logind # Restart to apply changes
 
 # -----------------------------------------------------------------------------
 # POWER-PROFILES-DAEMON
@@ -63,33 +61,32 @@
 
 - name: Install power-profiles-daemon (Arch)
   community.general.pacman:
-    name: power-profiles-daemon
-    state: present
+      name: power-profiles-daemon
+      state: present
   when: ansible_facts['os_family'] == "Archlinux"
-  ignore_errors: yes    # Don't fail if package not available
+  ignore_errors: yes # Don't fail if package not available
 
 - name: Install power-profiles-daemon (Fedora)
   ansible.builtin.dnf:
-    name: power-profiles-daemon
-    state: present
+      name: power-profiles-daemon
+      state: present
   when: ansible_facts['distribution'] == "Fedora"
   ignore_errors: yes
 
 - name: Install power-profiles-daemon (Ubuntu)
   ansible.builtin.apt:
-    name: power-profiles-daemon
-    state: present
+      name: power-profiles-daemon
+      state: present
   when: ansible_facts['os_family'] == "Debian"
   ignore_errors: yes
 
 # Enable and start the power-profiles-daemon service
 - name: Enable power-profiles-daemon
   ansible.builtin.systemd:
-    name: power-profiles-daemon
-    enabled: yes
-    state: started
+      name: power-profiles-daemon
+      enabled: yes
+      state: started
   ignore_errors: yes
-
 
 # -----------------------------------------------------------------------------
 # SWAYIDLE USER SERVICE
@@ -103,22 +100,21 @@
 # Create the user systemd directory if it doesn't exist
 - name: Create swayidle user systemd directory
   ansible.builtin.file:
-    path: "/home/{{ primary_user }}/.config/systemd/user"
-    state: directory
-    owner: "{{ primary_user }}"
-    group: "{{ primary_user }}"
-    mode: '0755'
+      path: "/home/{{ primary_user }}/.config/systemd/user"
+      state: directory
+      owner: "{{ primary_user }}"
+      group: "{{ primary_user }}"
+      mode: "0755"
 
 # Deploy the swayidle service file
 # This defines how swayidle is started and what actions it takes
 - name: Deploy swayidle systemd user service
   ansible.builtin.template:
-    src: swayidle.service.j2
-    dest: "/home/{{ primary_user }}/.config/systemd/user/swayidle.service"
-    owner: "{{ primary_user }}"
-    group: "{{ primary_user }}"
-    mode: '0644'
-
+      src: swayidle.service.j2
+      dest: "/home/{{ primary_user }}/.config/systemd/user/swayidle.service"
+      owner: "{{ primary_user }}"
+      group: "{{ primary_user }}"
+      mode: "0644"
 
 # -----------------------------------------------------------------------------
 # DEBUG OUTPUT
@@ -127,9 +123,46 @@
 
 - name: Display power configuration
   ansible.builtin.debug:
-    msg: |
-      Power management configured:
-        Lid close (AC): {{ lid_switch_on_ac }}
-        Lid close (battery): {{ lid_switch_on_battery }}
-        Power button: {{ power_key_action }}
-        SwayIdle: enabled for user {{ primary_user }}
+      msg: |
+          Power management configured:
+            Lid close (AC): {{ lid_switch_on_ac }}
+            Lid close (battery): {{ lid_switch_on_battery }}
+            Power button: {{ power_key_action }}
+            SwayIdle: enabled for user {{ primary_user }}
+
+# TODO: Change to TLP for advanced power management
+#- name: Configure TLP Battery Thresholds
+#  copy:
+#    dest: /etc/tlp.d/00-server-settings.conf
+#    content: |
+#      START_CHARGE_THRESH_BAT0=40
+#      STOP_CHARGE_THRESH_BAT0=50
+#      CPU_SCALING_GOVERNOR_ON_AC=performance
+#      CPU_ENERGY_PERF_POLICY_ON_AC=performance
+#    owner: root
+#    group: root
+#    mode: '0644'
+#  notify: Restart TLP
+
+#- name: Ensure TLP is enabled and running
+#  systemd:
+#    name: tlp
+#    enabled: yes
+#    state: started
+
+# also ensure in cachyos, power-profiles-daemon and tlp do not conflict and mask the power-profiles-daemon service
+
+# NVIDIA Persistence Daemon for better GPU power management on laptops with NVIDIA GPUs
+#- name: Enable NVIDIA Persistence for server stability
+#  systemd:
+#    name: nvidia-persistenced
+#    enabled: yes
+#    state: started
+
+## add UPower support for better power management on laptops with NVIDIA GPUs
+# PercentageLow=20
+# PercentageCritical=15
+# PercentageAction=15
+
+## What to do when PercentageAction is reached (10%)
+#CriticalPowerAction=Suspend
