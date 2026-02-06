@@ -18,7 +18,7 @@
 #   3. Packages               - Lists of packages per distribution
 #   4. SSH Configuration      - SSH hardening settings (if ssh role enabled)
 #   5. Fingerprint Config     - Fingerprint auth settings (if enabled)
-#   6. Power Management       - Laptop lid/idle/power button behavior
+#   6. Power Management       - Laptop lid/idle/power button behavior (using TLP - Linux only)
 #
 # =============================================================================
 
