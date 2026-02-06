@@ -160,7 +160,7 @@
 #    state: started
 
 ## add UPower support for better power management on laptops with NVIDIA GPUs
-# PercentageLow=20
+# PercentageLow=25
 # PercentageCritical=15
 # PercentageAction=15
 
