@@ -150,7 +150,7 @@
 #    enabled: yes
 #    state: started
 
-# also ensure in cachyos/arch, power-profiles-daemon and tlp do not conflict and mask the power-profiles-daemon service
+# also ensure in cachyos, power-profiles-daemon and tlp do not conflict and mask the power-profiles-daemon service
 
 # NVIDIA Persistence Daemon for better GPU power management on laptops with NVIDIA GPUs
 #- name: Enable NVIDIA Persistence for server stability
