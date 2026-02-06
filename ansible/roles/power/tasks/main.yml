@@ -164,5 +164,5 @@
 # PercentageCritical=15
 # PercentageAction=15
 
-## What to do when PercentageAction is reached (10%)
+## What to do when PercentageAction is reached (15%)
 #CriticalPowerAction=Suspend
