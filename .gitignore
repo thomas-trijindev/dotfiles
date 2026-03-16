@@ -24,4 +24,3 @@ Thumbs.db
 id_rsa*
 id_ed25519*
 secrets.yml
-vault.yml
