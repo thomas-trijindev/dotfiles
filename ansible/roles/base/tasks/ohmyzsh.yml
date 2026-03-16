@@ -1,0 +1,96 @@
+---
+# =============================================================================
+# OH-MY-ZSH INSTALLATION - roles/base/tasks/ohmyzsh.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Install oh-my-zsh framework with spaceship-prompt theme and plugins.
+#   All components are cloned to ~/.oh-my-zsh/custom/ so they work
+#   regardless of how the system zsh packages are organised.
+#
+# WHAT THIS INSTALLS:
+#   - oh-my-zsh            framework
+#   - spaceship-prompt     theme (cloned to custom/themes/)
+#   - zsh-autosuggestions  plugin (cloned to custom/plugins/)
+#   - zsh-syntax-highlighting plugin (cloned to custom/plugins/)
+#
+# FEATURE FLAG:
+#   Controlled by 'install_ohmyzsh' variable in group_vars/all.yml
+#   Set to 'false' to skip oh-my-zsh installation
+#
+# NOTE: System zsh packages (zsh-autosuggestions, zsh-syntax-highlighting)
+#   are installed via packages.yml. These git clones are needed because
+#   oh-my-zsh loads plugins from its own custom/plugins directory.
+#
+# =============================================================================
+
+# Use ~<user> so paths resolve to the actual user's home regardless of become
+- name: Resolve user home directory
+  ansible.builtin.shell: "echo ~{{ primary_user }}"
+  register: user_home_result
+  changed_when: false
+  check_mode: false
+  become: false
+
+- name: Set user_home fact
+  ansible.builtin.set_fact:
+    user_home: "{{ user_home_result.stdout }}"
+
+# -----------------------------------------------------------------------------
+# OH-MY-ZSH
+# -----------------------------------------------------------------------------
+
+- name: Check if oh-my-zsh is installed
+  ansible.builtin.stat:
+    path: "{{ user_home }}/.oh-my-zsh"
+  register: ohmyzsh_stat
+  become: false
+
+- name: Install oh-my-zsh (unattended)
+  ansible.builtin.shell:
+    cmd: >
+      sh -c "$(curl -fsSL
+      https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+      "" --unattended
+  when: not ohmyzsh_stat.stat.exists
+  become: false
+
+# -----------------------------------------------------------------------------
+# SPACESHIP PROMPT THEME
+# -----------------------------------------------------------------------------
+
+- name: Clone spaceship-prompt theme
+  ansible.builtin.git:
+    repo: https://github.com/spaceship-prompt/spaceship-prompt.git
+    dest: "{{ user_home }}/.oh-my-zsh/custom/themes/spaceship-prompt"
+    depth: 1
+    update: false
+  become: false
+
+- name: Symlink spaceship.zsh-theme into oh-my-zsh themes
+  ansible.builtin.file:
+    src: "{{ user_home }}/.oh-my-zsh/custom/themes/spaceship-prompt/spaceship.zsh-theme"
+    dest: "{{ user_home }}/.oh-my-zsh/custom/themes/spaceship.zsh-theme"
+    state: link
+  become: false
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# -----------------------------------------------------------------------------
+# ZSH PLUGINS
+# -----------------------------------------------------------------------------
+
+- name: Clone zsh-autosuggestions plugin
+  ansible.builtin.git:
+    repo: https://github.com/zsh-users/zsh-autosuggestions.git
+    dest: "{{ user_home }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+    depth: 1
+    update: false
+  become: false
+
+- name: Clone zsh-syntax-highlighting plugin
+  ansible.builtin.git:
+    repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+    dest: "{{ user_home }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+    depth: 1
+    update: false
+  become: false

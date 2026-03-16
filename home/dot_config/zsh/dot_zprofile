@@ -1,0 +1,21 @@
+if [[ $OSTYPE = linux* ]]; then
+    # display login screen
+    fastfetch
+    if [ -x /usr/games/cowsay -a -x /usr/games/fortune -a -x /usr/games/lolcat ]; then
+        fortune | cowsay -f $(ls /usr/share/cowsay/cows | shuf -n1) | lolcat
+    fi
+elif [[ $OSTYPE = darwin* ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+
+    # display login screen
+    fastfetch
+    if [ -x /opt/homebrew/bin/cowsay -a -x /opt/homebrew/bin/fortune -a -x /opt/homebrew/bin/lolcat ]; then
+        fortune | cowsay -f $(ls /opt/homebrew/share/cowsay/cows/*.cow | shuf -n1) | lolcat
+    fi
+
+fi
+
+
+if [ -f ~/.cargo/env ]; then
+    . "$HOME/.cargo/env"
+fi

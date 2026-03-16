@@ -44,6 +44,7 @@
   register: paru_check
   changed_when: false      # Never mark as changed (read-only check)
   failed_when: false       # Don't fail if paru not found
+  check_mode: false        # Always run — result drives all subsequent paru tasks
 
 # Install build dependencies needed to compile paru
 # base-devel: Contains make, gcc, and other build tools
@@ -98,6 +99,7 @@
     done
   register: aur_packages_needed
   changed_when: false
+  check_mode: false        # Always run — result drives clone/build tasks
   when:
     - packages_aur is defined
     - packages_aur | length > 0

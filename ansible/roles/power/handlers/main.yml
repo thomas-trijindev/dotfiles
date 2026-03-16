@@ -26,3 +26,8 @@
   ansible.builtin.systemd:
     name: systemd-logind
     state: restarted
+
+- name: Restart TLP
+  ansible.builtin.systemd:
+    name: tlp
+    state: restarted

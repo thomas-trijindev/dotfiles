@@ -44,8 +44,13 @@
   ansible.builtin.import_tasks: nordvpn.yml
   when: install_nordvpn | default(false)
 
-# Install chezmoi dotfiles manager
-# After playbook, run: chezmoi init --apply <github-username>
+# Install oh-my-zsh framework with spaceship-prompt and plugins
+# Controlled by install_ohmyzsh variable (default: false)
+- name: Install oh-my-zsh
+  ansible.builtin.import_tasks: ohmyzsh.yml
+  when: install_ohmyzsh | default(false)
+
+# Install chezmoi dotfiles manager and apply dotfiles repo
 # Controlled by install_chezmoi variable (default: false)
 - name: Install chezmoi
   ansible.builtin.import_tasks: chezmoi.yml

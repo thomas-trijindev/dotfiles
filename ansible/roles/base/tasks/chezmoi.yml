@@ -64,3 +64,25 @@
     - ansible_facts['os_family'] == "Darwin"
     - chezmoi_check.rc != 0
   become: no
+
+# -----------------------------------------------------------------------------
+# APPLY DOTFILES
+# -----------------------------------------------------------------------------
+# Run chezmoi init --apply to deploy dotfiles from the configured repo.
+# On first run this clones the repo; on subsequent runs it re-applies.
+# The CLAUDE_CODE_OAUTH_TOKEN template variable will render empty if the env
+# var is not set — set it manually afterwards if needed.
+
+- name: Check if chezmoi source dir already exists
+  ansible.builtin.stat:
+    path: "~{{ primary_user }}/.local/share/chezmoi"
+  register: chezmoi_source_stat
+  become: false
+
+- name: Apply dotfiles via chezmoi
+  ansible.builtin.command:
+    cmd: "chezmoi init --apply {{ chezmoi_dotfiles_repo }}"
+  when: not chezmoi_source_stat.stat.exists
+  become: false
+  environment:
+    CLAUDE_CODE_OAUTH_TOKEN: "{{ lookup('env', 'CLAUDE_CODE_OAUTH_TOKEN') | default('', true) }}"

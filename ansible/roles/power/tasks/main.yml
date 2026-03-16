@@ -52,27 +52,34 @@
       mode: "0644"
   notify: Restart systemd-logind # Restart to apply changes
 
-# -----------------------------------------------------------------------------
-# POWER-PROFILES-DAEMON
-# -----------------------------------------------------------------------------
-# Install power-profiles-daemon for managing CPU/GPU power profiles
-# This allows switching between power-saver, balanced, and performance modes
-# Can be controlled via: powerprofilesctl set <profile>
 
-- name: Install power-profiles-daemon (Arch)
-  community.general.pacman:
-      name: power-profiles-daemon
-      state: present
+# -----------------------------------------------------------------------------
+# TLP CONFIGURATION
+# -----------------------------------------------------------------------------
+# Deploy TLP drop-in config for battery thresholds and CPU performance.
+# Uses /etc/tlp.d/ so it doesn't overwrite the main /etc/tlp.conf.
+
+- name: Deploy TLP battery and CPU config
+  ansible.builtin.copy:
+    dest: /etc/tlp.d/00-ansible.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible — edit group_vars/all.yml to change these values
+      START_CHARGE_THRESH_BAT0={{ tlp_start_charge_thresh }}
+      STOP_CHARGE_THRESH_BAT0={{ tlp_stop_charge_thresh }}
+      CPU_SCALING_GOVERNOR_ON_AC={{ tlp_cpu_governor_on_ac }}
+      CPU_ENERGY_PERF_POLICY_ON_AC={{ tlp_cpu_perf_policy_on_ac }}
   when: ansible_facts['os_family'] == "Archlinux"
-  ignore_errors: true # Don't fail if package not available
+  notify: Restart TLP
 
-# Enable and start the power-profiles-daemon service
-- name: Enable power-profiles-daemon
+- name: Ensure TLP service is enabled and running
   ansible.builtin.systemd:
-      name: power-profiles-daemon
-      enabled: yes
-      state: started
-  ignore_errors: true
+    name: tlp
+    enabled: yes
+    state: started
+  when: ansible_facts['os_family'] == "Archlinux"
 
 # -----------------------------------------------------------------------------
 # SWAYIDLE USER SERVICE
@@ -116,40 +123,3 @@
             Power button: {{ power_key_action }}
             SwayIdle: enabled for user {{ primary_user }}
 
-# TODO: Change to TLP for advanced power management
-#- name: Configure TLP Battery Thresholds
-#  copy:
-#    dest: /etc/tlp.d/00-server-settings.conf
-#    content: |
-#      START_CHARGE_THRESH_BAT0=40
-#      STOP_CHARGE_THRESH_BAT0=50
-#      CPU_SCALING_GOVERNOR_ON_AC=performance
-#      CPU_ENERGY_PERF_POLICY_ON_AC=performance
-#    owner: root
-#    group: root
-#    mode: '0644'
-#  notify: Restart TLP
-
-#- name: Ensure TLP is enabled and running
-#  systemd:
-#    name: tlp
-#    enabled: yes
-#    state: started
-
-# also ensure in cachyos, power-profiles-daemon and tlp do not conflict and mask the power-profiles-daemon service
-
-# NVIDIA Persistence Daemon for better GPU power management on laptops with NVIDIA GPUs
-#- name: Enable NVIDIA Persistence for server stability
-#  systemd:
-#    name: nvidia-persistenced
-#    enabled: yes
-#    state: started
-
-## add UPower support for better power management on laptops with NVIDIA GPUs
-# PercentageLow=25
-
-# PercentageCritical=15
-# PercentageAction=15
-
-## What to do when PercentageAction is reached (15%)
-#CriticalPowerAction=Suspend

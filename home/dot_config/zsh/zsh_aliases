@@ -1,0 +1,65 @@
+# OS specific aliases
+
+#if MacOS
+if [[ $OSTYPE  = darwin* ]]; then
+    alias paci="brew install"
+    alias pacu="brew update && brew upgrade && brew cleanup"
+    alias cat="bat"
+#if Linux
+else
+    alias cat="bat"
+
+    # check package manager for different distro
+    if [ -e "/usr/bin/apt" ] ; then # Apt-based distros (Debian, Ubuntu, etc.)
+        alias paci="sudo apt install"
+        alias pacu="sudo apt update && sudo apt upgrade"
+        if [ -e "/usr/bin/nala" ]; then # if nala exist, use nala to install packages instead of apt
+            alias paci="sudo nala install"
+            alias pacu="sudo nala update && sudo nala upgrade"
+        fi
+    elif [ -e "/usr/bin/pacman" ] ; then # Arch Linux
+        alias paci="sudo pacman -S"
+        alias pacu="sudo pacman -Syu"
+    fi
+fi
+
+# set global aliases
+# directories & files
+if [ -e "/usr/bin/eza" ] || [ -e "/opt/homebrew/bin/eza" ]; then #use ls replace if exa exist
+    alias ls="eza --icons"
+    alias ll="eza --long --header --icons"
+    alias la="eza --long --header --icons -a"
+else
+    alias ll="ls -l"
+    alias lla="ls -la"
+fi
+
+alias rm="rm -i"
+
+# system
+
+if [ -e "~/.cargo/bin/procs" ]; then
+    alias ps="procs"
+else
+    alias ps="ps aux"
+fi
+
+# docker
+alias dcu="docker-compose up -d"
+alias dcd="docker-compose down"
+alias dps="docker ps -a"
+
+# git
+alias gl="git log --all --decorate --oneline --graph"
+alias gs="git status"
+
+# global aliases [example alias -g G="| grep" --> ls G keyword]
+alias -g G="| grep"
+alias -g M="| more"
+
+# check if neovim exist
+if  type "nvim" > /dev/null; then
+	alias v="nvim"
+else
+	alias v="vim"
+fi
