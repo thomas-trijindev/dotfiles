@@ -1,0 +1,38 @@
+---
+# =============================================================================
+# MISE INSTALLATION - roles/base/tasks/mise.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Install mise-en-place, a polyglot runtime version manager (replaces nvm,
+#   pyenv, rbenv, etc.) https://mise.jdx.dev
+#
+# FEATURE FLAG:
+#   Controlled by 'install_mise' variable in group_vars/all.yml
+#
+# =============================================================================
+
+- name: Check if mise is installed
+  ansible.builtin.command: which mise
+  register: mise_check
+  changed_when: false
+  failed_when: false
+
+# mise-bin is in the AUR on Arch/CachyOS
+- name: Install mise (Arch/CachyOS via AUR)
+  kewlfft.aur.aur:
+    name: mise-bin
+    state: present
+  become: false
+  when:
+    - ansible_facts['os_family'] == "Archlinux"
+    - mise_check.rc != 0
+
+- name: Install mise (macOS via Homebrew)
+  community.general.homebrew:
+    name: mise
+    state: present
+  become: false
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - mise_check.rc != 0

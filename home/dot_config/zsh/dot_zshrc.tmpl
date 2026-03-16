@@ -112,6 +112,10 @@ _fzf_compgen_dir() {
   ${FD_FILENAME} --type d --ignore-file ${XDG_CONFIG_HOME}/fd/ignore . "$1" }
 
 
+# MISE
+## ----
+command -v mise &>/dev/null && eval "$(mise activate zsh)"
+
 # SSH AGENT
 ## ---------
 export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/ssh-agent.socket

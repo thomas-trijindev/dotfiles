@@ -67,6 +67,9 @@ install_claude: true
 # Installs oh-my-zsh, spaceship-prompt, zsh-autosuggestions, zsh-syntax-highlighting
 install_ohmyzsh: true
 
+# mise - polyglot runtime version manager (replaces nvm, pyenv, etc.)
+install_mise: true
+
 # Built-in SSH agent via systemd user service (Linux only)
 # Enables ssh-agent.service and sets SSH_AUTH_SOCK via environment.d
 # Set to false if you use 1Password or another SSH agent manager

@@ -56,6 +56,12 @@
   ansible.builtin.import_tasks: chezmoi.yml
   when: install_chezmoi | default(false)
 
+# Install mise runtime version manager
+# Controlled by install_mise variable (default: false)
+- name: Install mise
+  ansible.builtin.import_tasks: mise.yml
+  when: install_mise | default(false)
+
 # Install Claude Code AI assistant CLI
 # Downloads from claude.ai official installer
 # Controlled by install_claude variable (default: false)
