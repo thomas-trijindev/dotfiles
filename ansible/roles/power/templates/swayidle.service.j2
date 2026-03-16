@@ -44,6 +44,8 @@ Description=Idle manager for Wayland
 Documentation=man:swayidle(1)
 # Only run during graphical session
 PartOf=graphical-session.target
+# Don't start if WAYLAND_DISPLAY is not set (e.g. in a TTY session)
+ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
 Type=simple
