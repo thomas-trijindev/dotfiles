@@ -96,7 +96,7 @@
     mode: "0755"
   when: ansible_facts['os_family'] == "Archlinux"
 
-- name: Disable GDM idle suspend
+- name: Configure GDM login screen power settings
   ansible.builtin.copy:
     dest: /etc/dconf/db/gdm.d/00-power.conf
     owner: root
@@ -105,7 +105,12 @@
     content: |
       [org/gnome/settings-daemon/plugins/power]
       sleep-inactive-ac-type='nothing'
-      sleep-inactive-battery-type='nothing'
+      sleep-inactive-ac-timeout={{ gdm_screen_off_ac_sec }}
+      sleep-inactive-battery-type='suspend'
+      sleep-inactive-battery-timeout={{ gdm_battery_suspend_sec }}
+
+      [org/gnome/desktop/session]
+      idle-delay=uint32 {{ gdm_screen_off_ac_sec }}
   when: ansible_facts['os_family'] == "Archlinux"
   notify: Update dconf
 

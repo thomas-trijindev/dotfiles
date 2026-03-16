@@ -49,10 +49,10 @@ HandlePowerKey={{ power_key_action }}
 HandleSuspendKey=suspend
 
 
-{% if idle_action != 'ignore' %}
 # What to do after the system has been idle
-# Note: swayidle handles screen-level idle, this is system-level
+# Note: swayidle handles screen-level idle; this must be explicit to override distro defaults
 IdleAction={{ idle_action }}
+{% if idle_action != 'ignore' %}
 
 # How long to wait before triggering idle action
 IdleActionSec={{ idle_action_sec }}

@@ -188,17 +188,20 @@ fingerprint_pam_services:
 # NOTE: These only apply on Linux laptops (or if force_power_management=true)
 
 # What to do when the laptop lid is closed
-lid_switch_on_ac: lock               # On AC power: just lock screen
+lid_switch_on_ac: ignore             # On AC power: stay alive (don't suspend)
 lid_switch_on_battery: suspend       # On battery: suspend to save power
 
 # What to do when system is idle (no user activity)
-# This is handled by systemd-logind directly
-idle_action_on_ac: lock
-idle_action: ignore                  # Default idle action (set to ignore, swayidle handles this)
-idle_action_sec_on_ac: 5min          # How long until idle triggers (on AC)
+# logind is set to ignore — idle is handled by swayidle (user session) and GDM (login screen)
+idle_action: ignore
+idle_action_sec: 30min               # Fallback if idle_action is ever changed from ignore
 
-idle_action_on_battery: suspend
-idle_action_sec_on_battery: 10min    # How long until idle triggers (on battery)
+# GDM login screen idle behavior (before user logs in)
+gdm_screen_off_ac_sec: 300           # Blank screen after 5 min idle on AC
+gdm_battery_suspend_sec: 600         # Suspend after 10 min idle on battery
+
+# swayidle user session idle behavior (after login, battery only — AC just turns off screen)
+swayidle_battery_suspend_sec: 600    # Suspend after 10 min idle on battery
 
 # What to do when lid is closed while docked (external display connected)
 lid_switch_docked: ignore            # Ignore lid when docked (use external display)

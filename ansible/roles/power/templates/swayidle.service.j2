@@ -55,6 +55,10 @@ Type=simple
 #     2. Start screen transition animation
 #     3. Power off monitors
 #
+#   timeout {{ swayidle_battery_suspend_sec }} '...' - After 10 min idle on battery:
+#     1. Check if on battery (AC online = 0)
+#     2. Suspend the system
+#
 #   resume '...'       - When user activity detected:
 #     1. Power monitors back on
 #
@@ -66,6 +70,7 @@ Type=simple
 #
 ExecStart=/usr/bin/swayidle -w \
     timeout 120 'qs -c noctalia-shell ipc call lockScreen lock; niri msg action do-screen-transition && niri msg action power-off-monitors' \
+    timeout {{ swayidle_battery_suspend_sec }} 'if [ "$(cat /sys/class/power_supply/AC0/online 2>/dev/null || cat /sys/class/power_supply/AC/online 2>/dev/null)" = "0" ]; then systemctl suspend; fi' \
     resume 'niri msg action power-on-monitors' \
     lock 'qs -c noctalia-shell ipc call lockScreen lock' \
     before-sleep 'qs -c noctalia-shell ipc call lockScreen lock'
