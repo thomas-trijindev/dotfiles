@@ -50,7 +50,60 @@ Managed under `home/`, deployed to `~` via chezmoi:
 | `home/dot_config/tmux/tmux.conf` | `~/.config/tmux/tmux.conf` |
 | `home/dot_config/nvim/` | `~/.config/nvim/` |
 
-Shell uses XDG layout — `ZDOTDIR` is set to `~/.config/zsh` in `~/.zshenv`.
+Shell uses XDG layout — `ZDOTDIR` is set to `~/.config/zsh` in `~/.zshenv`. Any shell environment exports must go in `dot_zshrc.tmpl`, **not** `~/.zshrc` (which is never loaded).
+
+## Updating Dotfiles
+
+chezmoi is the source of truth. The workflow depends on where you make the change:
+
+### You edited a file directly in `~` (e.g. `~/.config/zsh/.zshrc`)
+
+chezmoi will detect the drift. Pull it back into the source:
+
+```bash
+chezmoi re-add ~/.config/zsh/.zshrc
+```
+
+Then commit and push from this repo:
+
+```bash
+cd ~/dev/personal/dotfiles
+git add home/dot_config/zsh/dot_zshrc.tmpl
+git commit -m "..."
+git push
+```
+
+On next deploy, `./ansible/run.sh` will run `chezmoi update --force` which pulls from the repo and applies.
+
+### You edited a file in this repo (e.g. `home/dot_config/zsh/dot_zshrc.tmpl`)
+
+Commit and push, then apply locally:
+
+```bash
+git add home/...
+git commit -m "..."
+git push
+chezmoi update
+```
+
+### You want to preview what chezmoi would change before applying
+
+```bash
+chezmoi diff
+```
+
+### Useful chezmoi commands
+
+```bash
+chezmoi diff                        # Preview unapplied changes
+chezmoi apply                       # Apply source to home directory
+chezmoi update                      # Pull from repo + apply
+chezmoi re-add ~/.config/zsh/.zshrc # Pull live file back into source
+chezmoi cd                          # cd into chezmoi source dir (~/.local/share/chezmoi)
+chezmoi edit ~/.config/zsh/.zshrc   # Edit source file for a given target
+```
+
+> **Note:** `~/.local/share/chezmoi` is chezmoi's working copy of this repo (cloned from GitHub). Edits there are equivalent to editing `home/` here.
 
 ## Selective Runs
 
