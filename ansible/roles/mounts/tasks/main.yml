@@ -122,6 +122,18 @@
 # AUTOFS CONFIGURATION
 # -----------------------------------------------------------------------------
 
+- name: Deploy /etc/auto.master
+  ansible.builtin.copy:
+    dest: /etc/auto.master
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible
+      +dir:/etc/auto.master.d
+      +auto.master
+  notify: Restart autofs
+
 - name: Ensure /etc/auto.master.d directory exists
   ansible.builtin.file:
     path: /etc/auto.master.d
