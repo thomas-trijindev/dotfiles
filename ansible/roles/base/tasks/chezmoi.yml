@@ -70,8 +70,8 @@
 # -----------------------------------------------------------------------------
 # Run chezmoi init --apply to deploy dotfiles from the configured repo.
 # On first run this clones the repo; on subsequent runs it re-applies.
-# The CLAUDE_CODE_OAUTH_TOKEN template variable will render empty if the env
-# var is not set — set it manually afterwards if needed.
+# CLAUDE_CODE_OAUTH_TOKEN is sourced from vault (claude_code_oauth_token).
+# It renders empty if the vault variable is not set.
 
 - name: Check if chezmoi source dir already exists
   ansible.builtin.stat:
@@ -93,4 +93,4 @@
   become: false
   check_mode: false
   environment:
-    CLAUDE_CODE_OAUTH_TOKEN: "{{ lookup('env', 'CLAUDE_CODE_OAUTH_TOKEN') | default('', true) }}"
+    CLAUDE_CODE_OAUTH_TOKEN: "{{ claude_code_oauth_token | default('', true) }}"
