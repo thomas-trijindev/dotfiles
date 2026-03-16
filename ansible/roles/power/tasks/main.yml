@@ -82,6 +82,34 @@
   when: ansible_facts['os_family'] == "Archlinux"
 
 # -----------------------------------------------------------------------------
+# GDM IDLE SUSPEND OVERRIDE
+# -----------------------------------------------------------------------------
+# GDM has its own power management that suspends the machine when idle at the
+# login screen, independent of logind. Disable it via dconf override.
+
+- name: Ensure GDM dconf directory exists
+  ansible.builtin.file:
+    path: /etc/dconf/db/gdm.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: ansible_facts['os_family'] == "Archlinux"
+
+- name: Disable GDM idle suspend
+  ansible.builtin.copy:
+    dest: /etc/dconf/db/gdm.d/00-power.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [org/gnome/settings-daemon/plugins/power]
+      sleep-inactive-ac-type='nothing'
+      sleep-inactive-battery-type='nothing'
+  when: ansible_facts['os_family'] == "Archlinux"
+  notify: Update dconf
+
+# -----------------------------------------------------------------------------
 # SWAYIDLE USER SERVICE
 # -----------------------------------------------------------------------------
 # Configure swayidle for Wayland session idle management

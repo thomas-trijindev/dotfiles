@@ -31,3 +31,6 @@
   ansible.builtin.systemd:
     name: tlp
     state: restarted
+
+- name: Update dconf
+  ansible.builtin.command: dconf update
