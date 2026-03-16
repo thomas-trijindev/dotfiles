@@ -44,8 +44,10 @@ Description=Idle manager for Wayland
 Documentation=man:swayidle(1)
 # Only run during graphical session
 PartOf=graphical-session.target
-# Don't start if WAYLAND_DISPLAY is not set (e.g. in a TTY session)
-ConditionEnvironment=WAYLAND_DISPLAY
+# Only start inside a niri session — NIRI_SOCKET is exported by niri to all child processes
+# and into the systemd user environment. Without it, niri msg action calls below will fail.
+# (WAYLAND_DISPLAY alone is insufficient; other compositors set it too.)
+ConditionEnvironment=NIRI_SOCKET
 
 [Service]
 Type=simple
