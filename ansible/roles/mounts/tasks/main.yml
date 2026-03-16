@@ -36,16 +36,47 @@
 - name: Import autofs maintainer GPG key
   ansible.builtin.command:
     cmd: gpg --keyserver keyserver.ubuntu.com --recv-keys CD0A6E3CBB6768800B0736A8E7677380F54FD8A9
-  become: false
+  become: yes
+  become_user: "{{ primary_user }}"
   changed_when: false
 
-- name: Install autofs (AUR)
-  kewlfft.aur.aur:
-    name: autofs
+- name: Check if autofs is installed
+  ansible.builtin.command: pacman -Qi autofs
+  register: autofs_check
+  changed_when: false
+  failed_when: false
+
+- name: Clone autofs from AUR
+  ansible.builtin.git:
+    repo: https://aur.archlinux.org/autofs.git
+    dest: /tmp/aur_builds/autofs
+    version: master
+  become: yes
+  become_user: "{{ primary_user }}"
+  when: autofs_check.rc != 0
+
+- name: Build autofs
+  ansible.builtin.shell:
+    cmd: makepkg -s --noconfirm --needed
+    chdir: /tmp/aur_builds/autofs
+  become: yes
+  become_user: "{{ primary_user }}"
+  when: autofs_check.rc != 0
+
+- name: Find built autofs package
+  ansible.builtin.find:
+    paths: /tmp/aur_builds/autofs
+    patterns: "*.pkg.tar.zst"
+  register: autofs_pkg
+  when: autofs_check.rc != 0
+
+- name: Install autofs package
+  community.general.pacman:
+    name: "{{ autofs_pkg.files | map(attribute='path') | list }}"
     state: present
-    use: paru
-    extra_args: "--sudoloop"
-  become: false
+  when:
+    - autofs_check.rc != 0
+    - autofs_pkg.files | default([]) | length > 0
 
 # -----------------------------------------------------------------------------
 # CREDENTIALS
