@@ -78,11 +78,19 @@
     path: "~{{ primary_user }}/.local/share/chezmoi"
   register: chezmoi_source_stat
   become: false
+  check_mode: false
 
-- name: Apply dotfiles via chezmoi
+- name: Init chezmoi repo (first run only)
   ansible.builtin.command:
-    cmd: "chezmoi init --apply {{ chezmoi_dotfiles_repo }}"
+    cmd: "chezmoi init {{ chezmoi_dotfiles_repo }}"
   when: not chezmoi_source_stat.stat.exists
   become: false
+  check_mode: false
+
+- name: Update and apply dotfiles via chezmoi
+  ansible.builtin.command:
+    cmd: "chezmoi update"
+  become: false
+  check_mode: false
   environment:
     CLAUDE_CODE_OAUTH_TOKEN: "{{ lookup('env', 'CLAUDE_CODE_OAUTH_TOKEN') | default('', true) }}"
