@@ -33,10 +33,18 @@
     name: cifs-utils
     state: present
 
+- name: Import autofs maintainer GPG key
+  ansible.builtin.command:
+    cmd: gpg --keyserver keyserver.ubuntu.com --recv-keys CD0A6E3CBB6768800B0736A8E7677380F54FD8A9
+  become: false
+  changed_when: false
+
 - name: Install autofs (AUR)
   kewlfft.aur.aur:
     name: autofs
     state: present
+    use: paru
+    extra_args: "--sudoloop"
   become: false
 
 # -----------------------------------------------------------------------------
