@@ -9,8 +9,6 @@
 #
 # INSTALLATION METHODS:
 #   - Arch/CachyOS: AUR package (nordvpn-gui-bin) - includes both CLI and GUI
-#   - Fedora:       Official NordVPN repository
-#   - Ubuntu/Debian: Official NordVPN repository
 #   - macOS:        Homebrew cask
 #
 # POST-INSTALL STEPS (manual):
@@ -110,100 +108,6 @@
     enabled: yes
     state: started
   when: ansible_facts['os_family'] == "Archlinux"
-
-
-# -----------------------------------------------------------------------------
-# FEDORA
-# -----------------------------------------------------------------------------
-# On Fedora, we use NordVPN's official repository and install via dnf.
-
-- name: Check if NordVPN is installed (Fedora)
-  ansible.builtin.command: which nordvpn
-  register: nordvpn_check_fedora
-  changed_when: false
-  failed_when: false
-  when: ansible_facts['distribution'] == "Fedora"
-
-# Install NordVPN's official repo using their install script with -n flag
-# The -n flag adds the repo without installing the package
-- name: Install NordVPN repository (Fedora)
-  ansible.builtin.shell: |
-    sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh) -n
-  when:
-    - ansible_facts['distribution'] == "Fedora"
-    - nordvpn_check_fedora.rc != 0
-
-# Install nordvpn package from the repo
-- name: Install NordVPN (Fedora)
-  ansible.builtin.dnf:
-    name: nordvpn
-    state: present
-  when:
-    - ansible_facts['distribution'] == "Fedora"
-    - nordvpn_check_fedora.rc != 0
-
-# Add user to nordvpn group
-- name: Add user to nordvpn group (Fedora)
-  ansible.builtin.user:
-    name: "{{ primary_user }}"
-    groups: nordvpn
-    append: yes
-  when: ansible_facts['distribution'] == "Fedora"
-
-# Enable and start the nordvpnd daemon
-- name: Enable nordvpnd service (Fedora)
-  ansible.builtin.systemd:
-    name: nordvpnd
-    enabled: yes
-    state: started
-  when: ansible_facts['distribution'] == "Fedora"
-
-
-# -----------------------------------------------------------------------------
-# UBUNTU/DEBIAN
-# -----------------------------------------------------------------------------
-# On Ubuntu/Debian, we use NordVPN's official repository and install via apt.
-
-- name: Check if NordVPN is installed (Ubuntu/Debian)
-  ansible.builtin.command: which nordvpn
-  register: nordvpn_check_debian
-  changed_when: false
-  failed_when: false
-  when: ansible_facts['os_family'] == "Debian"
-
-# Install NordVPN's official repo using their install script
-- name: Install NordVPN repository (Ubuntu/Debian)
-  ansible.builtin.shell: |
-    sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh) -n
-  when:
-    - ansible_facts['os_family'] == "Debian"
-    - nordvpn_check_debian.rc != 0
-
-# Install nordvpn package from the repo
-- name: Install NordVPN (Ubuntu/Debian)
-  ansible.builtin.apt:
-    name: nordvpn
-    state: present
-    update_cache: yes    # Refresh apt cache to see new repo
-  when:
-    - ansible_facts['os_family'] == "Debian"
-    - nordvpn_check_debian.rc != 0
-
-# Add user to nordvpn group
-- name: Add user to nordvpn group (Ubuntu/Debian)
-  ansible.builtin.user:
-    name: "{{ primary_user }}"
-    groups: nordvpn
-    append: yes
-  when: ansible_facts['os_family'] == "Debian"
-
-# Enable and start the nordvpnd daemon
-- name: Enable nordvpnd service (Ubuntu/Debian)
-  ansible.builtin.systemd:
-    name: nordvpnd
-    enabled: yes
-    state: started
-  when: ansible_facts['os_family'] == "Debian"
 
 
 # -----------------------------------------------------------------------------

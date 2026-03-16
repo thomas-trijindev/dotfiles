@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-This is an Ansible-based system configuration repository that automates the setup of Linux (Arch/CachyOS, Fedora, Ubuntu/Debian) and macOS machines with developer tools, packages, and configurations.
+This is an Ansible-based system configuration repository that automates the setup of Linux (Arch/CachyOS) and macOS machines with developer tools, packages, and configurations.
 
 ## Commands
 
@@ -47,9 +47,7 @@ ansible-galaxy collection install -r ansible/requirements.yml
 
 ### Multi-Platform Pattern
 Tasks use `when:` conditions with `ansible_facts`:
-- `ansible_facts['os_family'] == "Archlinux"` - Arch, CachyOS, Manjaro
-- `ansible_facts['os_family'] == "Debian"` - Ubuntu, Debian
-- `ansible_facts['distribution'] == "Fedora"` - Fedora specifically
+- `ansible_facts['os_family'] == "Archlinux"` - Arch, CachyOS
 - `ansible_facts['os_family'] == "Darwin"` - macOS
 
 ### Configuration Hierarchy
@@ -62,7 +60,7 @@ Tasks use `when:` conditions with `ansible_facts`:
 ### Adding a package
 Edit `ansible/group_vars/all.yml`:
 - `packages_common` for packages with same name across all distros
-- `packages_arch`, `packages_fedora`, `packages_ubuntu`, `packages_macos` for distro-specific names
+- `packages_arch`, `packages_macos` for platform-specific names
 
 ### Adding a new optional tool
 1. Create `ansible/roles/base/tasks/mytool.yml` with platform-specific installation tasks

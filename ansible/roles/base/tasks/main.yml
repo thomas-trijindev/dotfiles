@@ -38,7 +38,7 @@
   when: ansible_facts['os_family'] == "Archlinux"
 
 # Install NordVPN client
-# Uses different methods per distro: AUR on Arch, repo on Fedora/Ubuntu, cask on macOS
+# Uses different methods per platform: AUR on Arch, cask on macOS
 # Controlled by install_nordvpn variable (default: false)
 - name: Install NordVPN
   ansible.builtin.import_tasks: nordvpn.yml

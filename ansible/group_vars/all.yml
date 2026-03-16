@@ -76,7 +76,7 @@ install_claude: true
 #
 # PACKAGE NAME DIFFERENCES:
 #   Some packages have different names on different distros:
-#   - fd: 'fd' on Arch/macOS, 'fd-find' on Fedora/Ubuntu
+#   - fd: 'fd' on Arch/macOS
 #   - ripgrep: 'ripgrep' everywhere, but command is 'rg'
 
 # Packages installed on ALL distributions
@@ -103,16 +103,6 @@ packages_arch:
 # These are built from source using paru
 # WARNING: AUR packages can take a long time to build
 packages_aur: []
-
-# Fedora specific packages
-packages_fedora:
-  - fd-find   # Fast find (different package name)
-  - bat       # Cat with syntax highlighting
-
-# Ubuntu/Debian specific packages
-packages_ubuntu:
-  - fd-find   # Fast find (different package name)
-  - bat       # Cat with syntax highlighting
 
 # macOS specific packages (via Homebrew)
 packages_macos:

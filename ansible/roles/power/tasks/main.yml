@@ -66,20 +66,6 @@
   when: ansible_facts['os_family'] == "Archlinux"
   ignore_errors: true # Don't fail if package not available
 
-- name: Install power-profiles-daemon (Fedora)
-  ansible.builtin.dnf:
-      name: power-profiles-daemon
-      state: present
-  when: ansible_facts['distribution'] == "Fedora"
-  ignore_errors: true # Don't fail if package not available
-
-- name: Install power-profiles-daemon (Ubuntu)
-  ansible.builtin.apt:
-      name: power-profiles-daemon
-      state: present
-  when: ansible_facts['os_family'] == "Debian"
-  ignore_errors: true
-
 # Enable and start the power-profiles-daemon service
 - name: Enable power-profiles-daemon
   ansible.builtin.systemd:

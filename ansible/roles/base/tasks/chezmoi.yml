@@ -51,35 +51,6 @@
     - chezmoi_check.rc != 0
 
 # -----------------------------------------------------------------------------
-# FEDORA
-# -----------------------------------------------------------------------------
-# chezmoi is available in the official Fedora repos
-
-- name: Install chezmoi (Fedora)
-  ansible.builtin.dnf:
-    name: chezmoi
-    state: present
-  when:
-    - ansible_facts['distribution'] == "Fedora"
-    - chezmoi_check.rc != 0
-
-# -----------------------------------------------------------------------------
-# UBUNTU/DEBIAN
-# -----------------------------------------------------------------------------
-# chezmoi is NOT in the official Ubuntu/Debian repos, so we use the
-# official install script which downloads the latest binary
-
-# args.creates: Only run if the file doesn't exist (idempotent)
-- name: Install chezmoi (Ubuntu/Debian)
-  ansible.builtin.shell: |
-    sh -c "$(curl -fsLS get.chezmoi.io)" -- -b /usr/local/bin
-  args:
-    creates: /usr/local/bin/chezmoi    # Skip if already installed
-  when:
-    - ansible_facts['os_family'] == "Debian"
-    - chezmoi_check.rc != 0
-
-# -----------------------------------------------------------------------------
 # MACOS
 # -----------------------------------------------------------------------------
 # chezmoi is available via Homebrew
