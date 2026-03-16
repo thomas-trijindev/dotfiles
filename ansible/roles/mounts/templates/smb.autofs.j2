@@ -1,3 +1,3 @@
 # Managed by Ansible — NAS SMB mounts
 # Maps {{ nas_mount_base }}/<share> via /etc/auto.smb
-{{ nas_mount_base }}  /etc/auto.smb  --timeout={{ nas_autofs_timeout }}  --browse
+{{ nas_mount_base }}  /etc/autofs/auto.smb  --timeout={{ nas_autofs_timeout }}  --browse

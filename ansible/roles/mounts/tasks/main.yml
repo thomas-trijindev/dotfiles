@@ -122,21 +122,9 @@
 # AUTOFS CONFIGURATION
 # -----------------------------------------------------------------------------
 
-- name: Deploy /etc/auto.master
-  ansible.builtin.copy:
-    dest: /etc/auto.master
-    owner: root
-    group: root
-    mode: "0644"
-    content: |
-      # Managed by Ansible
-      +dir:/etc/auto.master.d
-      +auto.master
-  notify: Restart autofs
-
-- name: Ensure /etc/auto.master.d directory exists
+- name: Ensure /etc/autofs/auto.master.d directory exists
   ansible.builtin.file:
-    path: /etc/auto.master.d
+    path: /etc/autofs/auto.master.d
     state: directory
     owner: root
     group: root
@@ -145,7 +133,7 @@
 - name: Deploy autofs master map entry for NAS
   ansible.builtin.template:
     src: smb.autofs.j2
-    dest: /etc/auto.master.d/smb.autofs
+    dest: /etc/autofs/auto.master.d/smb.autofs
     owner: root
     group: root
     mode: "0644"
@@ -154,7 +142,7 @@
 - name: Deploy NAS share map
   ansible.builtin.template:
     src: auto.smb.j2
-    dest: /etc/auto.smb
+    dest: /etc/autofs/auto.smb
     owner: root
     group: root
     mode: "0644"
