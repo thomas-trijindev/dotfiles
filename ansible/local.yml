@@ -142,7 +142,7 @@
       tags: [power, laptop]
       when:
         - ansible_facts['os_family'] != "Darwin"    # Not macOS
-        - detected_chassis == 'laptop' or force_power_management | default(false)
+        - detected_chassis | default('unknown') == 'laptop' or force_power_management | default(false)
 
     # Mounts role: AutoFS SMB/CIFS NAS mounts
     # Only runs on Arch/CachyOS when install_autofs is true
