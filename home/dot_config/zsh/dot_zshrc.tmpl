@@ -112,6 +112,10 @@ _fzf_compgen_dir() {
   ${FD_FILENAME} --type d --ignore-file ${XDG_CONFIG_HOME}/fd/ignore . "$1" }
 
 
+# SSH AGENT
+## ---------
+export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/ssh-agent.socket
+
 # SECRETS
 ## -------
 export CLAUDE_CODE_OAUTH_TOKEN="{{ env "CLAUDE_CODE_OAUTH_TOKEN" }}"
