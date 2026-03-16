@@ -247,7 +247,7 @@ tlp_cpu_perf_policy_on_ac: performance  # CPU energy/performance policy on AC
 #   or use an Ansible vault file.
 
 nas_host: "192.168.0.6"
-nas_mount_base: "/mnt/nas"
+nas_mount_base: "/mnt"
 nas_credentials_file: "/etc/samba/credentials"
 nas_autofs_timeout: 60               # Unmount after this many seconds of inactivity
 
