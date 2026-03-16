@@ -33,6 +33,7 @@ export CLAUDE_CODE_OAUTH_TOKEN="your-token"
 | mise (runtime version manager) | AUR | homebrew | `install_mise` |
 | SSH agent (systemd) | systemd user service | — | `install_ssh_agent` |
 | Power management (TLP + swayidle) | systemd | — | laptop detection |
+| AutoFS NAS mounts (SMB/CIFS) | autofs + cifs-utils | — | `install_autofs` |
 
 ## Dotfiles (via chezmoi)
 
@@ -61,6 +62,9 @@ ansible-playbook ansible/local.yml --tags power
 
 # Skip a component
 ansible-playbook ansible/local.yml -e "install_nordvpn=false"
+
+# NAS mounts — credentials must be passed at runtime
+ansible-playbook ansible/local.yml --tags mounts -e "nas_username=myuser nas_password=mypass"
 ```
 
 ## Structure

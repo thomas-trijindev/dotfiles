@@ -1,0 +1,17 @@
+#!/bin/bash
+# Managed by Ansible — NAS mount health check
+# Runs every 5 minutes via cron. Restarts autofs if any share is unreachable.
+
+DEAD=0
+
+{% for share in nas_shares %}
+if ! timeout 5 ls "{{ nas_mount_base }}/{{ share }}" &>/dev/null; then
+    echo "$(date): {{ nas_mount_base }}/{{ share }} unreachable" | systemd-cat -t nas-health-check -p warning
+    DEAD=1
+fi
+{% endfor %}
+
+if [ "$DEAD" -eq 1 ]; then
+    echo "$(date): Restarting autofs to recover dead mounts" | systemd-cat -t nas-health-check -p warning
+    systemctl restart autofs
+fi

@@ -6,34 +6,7 @@ Planned future additions to this repo.
 
 ## Pending
 
-### AutoFS SMB Mounts
-
-Mount NAS shares from `192.168.0.6` via autofs.
-
-**Shares to mount:**
-
-| Share | Mount point |
-|-------|-------------|
-| `maps` | `/mnt/nas/maps` |
-| `reference_drawings` | `/mnt/nas/reference_drawings` |
-| `reject_images` | `/mnt/nas/reject_images` |
-
-**Implementation:**
-
-- New Ansible role `roles/mounts/` (or task file in `roles/base/tasks/autofs.yml`)
-- Feature flag: `install_autofs: false` in `group_vars/all.yml`
-- Install `autofs` and `cifs-utils` packages (Arch)
-- Deploy `/etc/autofs.conf` (timeout, browse_mode off)
-- Deploy `/etc/auto.master.d/smb.autofs` → points to `/etc/auto.smb`
-- Deploy `/etc/auto.smb` — one entry per share:
-  ```
-  maps           -fstype=cifs,credentials=/etc/samba/credentials,uid=<user>,gid=<user>  ://192.168.0.6/maps
-  reference_drawings  ...
-  reject_images  ...
-  ```
-- Deploy `/etc/samba/credentials` (via Ansible vault or chezmoi secret) with `username=` / `password=`
-- Enable and start `autofs` systemd service
-- Cron health-check: verify mount accessible every N minutes, remount if dead
+Nothing currently planned.
 
 ---
 
@@ -49,6 +22,10 @@ ZSH (XDG-compliant, oh-my-zsh + spaceship), tmux, and neovim configs deployed vi
 - `~/.config/zsh/zsh_aliases` — cross-platform aliases
 - `~/.config/tmux/tmux.conf` — gruvbox, `C-a` prefix, mouse mode
 - `~/.config/nvim/` — lazy.nvim, tokyonight, lsp-zero + Mason, nvim-cmp, telescope, trouble, which-key
+
+### AutoFS SMB NAS Mounts
+
+`roles/mounts/` role installs autofs + cifs-utils, deploys credentials, master map, and share map for three NAS shares (`maps`, `reference_drawings`, `reject_images`) on `192.168.0.6`. Includes a 5-minute cron health check that restarts autofs if any share is unreachable. Credentials passed at runtime via `-e`.
 
 ### mise Runtime Version Manager
 

@@ -1,0 +1,131 @@
+---
+# =============================================================================
+# MOUNTS ROLE - roles/mounts/tasks/main.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Configure autofs to automatically mount SMB/CIFS NAS shares on demand.
+#   Shares are mounted under /mnt/nas/<share> and unmounted after inactivity.
+#
+# CONFIGURATION:
+#   All settings are in group_vars/all.yml under "NAS MOUNTS" section.
+#   Credentials (nas_username / nas_password) should be provided via:
+#     ansible-playbook local.yml -e "nas_username=myuser nas_password=mypass"
+#     or via an Ansible vault file.
+#
+# FILES CREATED:
+#   - /etc/samba/credentials         (mode 0600, root-owned)
+#   - /etc/auto.master.d/smb.autofs  (master map entry)
+#   - /etc/auto.smb                  (per-share map)
+#   - /usr/local/bin/nas-health-check.sh  (cron health check)
+#
+# WHEN THIS ROLE RUNS:
+#   Only on Arch/CachyOS, controlled by install_autofs in group_vars/all.yml.
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# PACKAGES
+# -----------------------------------------------------------------------------
+
+- name: Install autofs and cifs-utils
+  community.general.pacman:
+    name:
+      - autofs
+      - cifs-utils
+    state: present
+
+# -----------------------------------------------------------------------------
+# CREDENTIALS
+# -----------------------------------------------------------------------------
+
+- name: Ensure /etc/samba directory exists
+  ansible.builtin.file:
+    path: /etc/samba
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy SMB credentials file
+  ansible.builtin.copy:
+    dest: "{{ nas_credentials_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+    content: |
+      username={{ nas_username }}
+      password={{ nas_password }}
+  no_log: true  # Don't log credentials to stdout
+  notify: Restart autofs
+
+# -----------------------------------------------------------------------------
+# AUTOFS CONFIGURATION
+# -----------------------------------------------------------------------------
+
+- name: Ensure /etc/auto.master.d directory exists
+  ansible.builtin.file:
+    path: /etc/auto.master.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy autofs master map entry for NAS
+  ansible.builtin.template:
+    src: smb.autofs.j2
+    dest: /etc/auto.master.d/smb.autofs
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart autofs
+
+- name: Deploy NAS share map
+  ansible.builtin.template:
+    src: auto.smb.j2
+    dest: /etc/auto.smb
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart autofs
+
+# -----------------------------------------------------------------------------
+# MOUNT BASE DIRECTORY
+# -----------------------------------------------------------------------------
+
+- name: Ensure NAS mount base directory exists
+  ansible.builtin.file:
+    path: "{{ nas_mount_base }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# -----------------------------------------------------------------------------
+# SERVICE
+# -----------------------------------------------------------------------------
+
+- name: Enable and start autofs service
+  ansible.builtin.systemd:
+    name: autofs
+    enabled: yes
+    state: started
+
+# -----------------------------------------------------------------------------
+# HEALTH CHECK CRON
+# -----------------------------------------------------------------------------
+
+- name: Deploy NAS health check script
+  ansible.builtin.template:
+    src: nas-health-check.sh.j2
+    dest: /usr/local/bin/nas-health-check.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Schedule NAS health check cron job
+  ansible.builtin.cron:
+    name: "NAS mount health check"
+    minute: "*/5"
+    job: /usr/local/bin/nas-health-check.sh
+    user: root

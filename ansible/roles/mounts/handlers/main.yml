@@ -1,0 +1,9 @@
+---
+# =============================================================================
+# MOUNTS ROLE HANDLERS - roles/mounts/handlers/main.yml
+# =============================================================================
+
+- name: Restart autofs
+  ansible.builtin.systemd:
+    name: autofs
+    state: restarted

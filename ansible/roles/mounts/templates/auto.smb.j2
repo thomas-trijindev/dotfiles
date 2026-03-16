@@ -1,0 +1,5 @@
+# Managed by Ansible — NAS share map
+# Format: <dir>  <options>  <location>
+{% for share in nas_shares %}
+{{ share }}  -fstype=cifs,credentials={{ nas_credentials_file }},uid={{ primary_user }},gid={{ primary_user }},iocharset=utf8  ://{{ nas_host }}/{{ share }}
+{% endfor %}

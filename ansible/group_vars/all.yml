@@ -70,6 +70,9 @@ install_ohmyzsh: true
 # mise - polyglot runtime version manager (replaces nvm, pyenv, etc.)
 install_mise: true
 
+# AutoFS NAS mounts (Arch/CachyOS only)
+install_autofs: true
+
 # Built-in SSH agent via systemd user service (Linux only)
 # Enables ssh-agent.service and sets SSH_AUTH_SOCK via environment.d
 # Set to false if you use 1Password or another SSH agent manager
@@ -230,3 +233,28 @@ tlp_start_charge_thresh: 40          # Start charging when battery drops below t
 tlp_stop_charge_thresh: 50           # Stop charging when battery reaches this %
 tlp_cpu_governor_on_ac: performance  # CPU scaling governor on AC power
 tlp_cpu_perf_policy_on_ac: performance  # CPU energy/performance policy on AC
+
+
+# =============================================================================
+# NAS MOUNTS
+# =============================================================================
+# AutoFS SMB/CIFS mounts for NAS shares. Shares are mounted on-demand under
+# nas_mount_base and automatically unmounted after nas_autofs_timeout seconds.
+#
+# CREDENTIALS: nas_username and nas_password must be supplied at run time —
+# do NOT commit real values here. Pass them via:
+#   ansible-playbook local.yml -e "nas_username=myuser nas_password=mypass"
+#   or use an Ansible vault file.
+
+nas_host: "192.168.0.6"
+nas_mount_base: "/mnt/nas"
+nas_credentials_file: "/etc/samba/credentials"
+nas_autofs_timeout: 60               # Unmount after this many seconds of inactivity
+
+nas_username: ""                     # Override at runtime — do not commit
+nas_password: ""                     # Override at runtime — do not commit
+
+nas_shares:
+  - maps
+  - reference_drawings
+  - reject_images
