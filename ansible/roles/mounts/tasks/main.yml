@@ -28,12 +28,16 @@
 # PACKAGES
 # -----------------------------------------------------------------------------
 
-- name: Install autofs and cifs-utils
+- name: Install cifs-utils
   community.general.pacman:
-    name:
-      - autofs
-      - cifs-utils
+    name: cifs-utils
     state: present
+
+- name: Install autofs (AUR)
+  kewlfft.aur.aur:
+    name: autofs
+    state: present
+  become: false
 
 # -----------------------------------------------------------------------------
 # CREDENTIALS
