@@ -25,7 +25,7 @@ ZSH (XDG-compliant, oh-my-zsh + spaceship), tmux, and neovim configs deployed vi
 
 ### AutoFS SMB NAS Mounts
 
-`roles/mounts/` role installs autofs + cifs-utils, deploys credentials, master map, and share map for three NAS shares (`maps`, `reference_drawings`, `reject_images`) on `192.168.0.6`. Includes a 5-minute cron health check that restarts autofs if any share is unreachable. Credentials passed at runtime via `-e`.
+`roles/mounts/` role installs autofs + cifs-utils, deploys credentials, master map, and share map for three NAS shares (`maps`, `reference_drawings`, `reject_images`) on `192.168.0.6`. Mounts on demand under `/mnt/<share>`, unmounts after 60s inactivity. Includes a 5-minute cron health check that restarts autofs if any share is unreachable. Credentials stored in Ansible vault (`group_vars/vault.yml`).
 
 ### mise Runtime Version Manager
 

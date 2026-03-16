@@ -10,6 +10,7 @@ ansible-galaxy collection install -r ansible/requirements.yml
 
 # Run full setup
 ./ansible/run.sh
+# Prompts: sudo password, then vault password (if vault.yml exists)
 ```
 
 If you want `CLAUDE_CODE_OAUTH_TOKEN` rendered into your zshrc, export it first:
@@ -60,12 +61,45 @@ ansible-playbook ansible/local.yml --tags base
 # Power management only
 ansible-playbook ansible/local.yml --tags power
 
+# NAS mounts only
+./ansible/run.sh --tags mounts
+
 # Skip a component
 ansible-playbook ansible/local.yml -e "install_nordvpn=false"
-
-# NAS mounts — credentials must be passed at runtime
-ansible-playbook ansible/local.yml --tags mounts -e "nas_username=myuser nas_password=mypass"
 ```
+
+## Secrets (Ansible Vault)
+
+Sensitive values (NAS credentials, etc.) are stored encrypted in `ansible/group_vars/vault.yml`. The vault file is committed to the repo — it is AES-256 encrypted and safe to store in git. You only need the vault password to decrypt it.
+
+**First-time setup on a new machine:**
+```bash
+# Create the vault file
+ansible-vault create ansible/group_vars/vault.yml
+```
+
+Add your secrets inside:
+```yaml
+nas_username: myuser
+nas_password: mypass
+```
+
+**Edit existing vault:**
+```bash
+ansible-vault edit ansible/group_vars/vault.yml
+```
+
+**View vault contents:**
+```bash
+ansible-vault view ansible/group_vars/vault.yml
+```
+
+**Change vault password:**
+```bash
+ansible-vault rekey ansible/group_vars/vault.yml
+```
+
+`run.sh` automatically detects the vault file and prompts for the vault password at deploy time.
 
 ## Structure
 
@@ -74,20 +108,27 @@ ansible/
 ├── local.yml               # Main playbook
 ├── run.sh                  # Convenience wrapper
 ├── requirements.yml        # community.general, kewlfft.aur
+├── group_vars/
+│   ├── all.yml             # All variables and feature flags
+│   └── vault.yml           # Encrypted secrets (NAS credentials, etc.)
 └── roles/
     ├── base/
-    │   ├── tasks/
-    │   │   ├── main.yml
-    │   │   ├── packages.yml
-    │   │   ├── aur.yml
-    │   │   ├── ohmyzsh.yml
-    │   │   ├── chezmoi.yml
-    │   │   ├── claude.yml
-    │   │   ├── mise.yml
-    │   │   ├── nordvpn.yml
-    │   │   └── ssh_agent.yml
-    └── power/
+    │   └── tasks/
+    │       ├── main.yml
+    │       ├── packages.yml
+    │       ├── aur.yml
+    │       ├── ohmyzsh.yml
+    │       ├── chezmoi.yml
+    │       ├── claude.yml
+    │       ├── mise.yml
+    │       ├── nordvpn.yml
+    │       └── ssh_agent.yml
+    ├── power/
+    │   ├── tasks/main.yml
+    │   └── templates/
+    └── mounts/
         ├── tasks/main.yml
+        ├── handlers/main.yml
         └── templates/
 home/                       # chezmoi source root
 docs/                       # Setup guides
@@ -95,4 +136,4 @@ docs/                       # Setup guides
 
 ## Configuration
 
-All variables are in `ansible/group_vars/all.yml`. Feature flags default to `true` unless noted.
+All variables and feature flags are in `ansible/group_vars/all.yml`. Secrets go in `ansible/group_vars/vault.yml`.
