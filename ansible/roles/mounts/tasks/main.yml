@@ -55,9 +55,17 @@
   become_user: "{{ primary_user }}"
   when: autofs_check.rc != 0
 
+- name: Install autofs build dependencies
+  community.general.pacman:
+    name:
+      - sssd
+      - rpcsvc-proto
+    state: present
+  when: autofs_check.rc != 0
+
 - name: Build autofs
   ansible.builtin.shell:
-    cmd: makepkg -s --noconfirm --needed
+    cmd: makepkg --noconfirm --needed
     chdir: /tmp/aur_builds/autofs
   become: yes
   become_user: "{{ primary_user }}"
