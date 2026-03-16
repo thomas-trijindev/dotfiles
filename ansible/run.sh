@@ -6,4 +6,8 @@ echo "Installing Ansible collections..."
 ansible-galaxy collection install -r requirements.yml
 
 echo "Running playbook..."
-ansible-playbook local.yml --ask-become-pass "$@"
+if [ -f group_vars/vault.yml ]; then
+    ansible-playbook local.yml --ask-become-pass --ask-vault-pass "$@"
+else
+    ansible-playbook local.yml --ask-become-pass "$@"
+fi
