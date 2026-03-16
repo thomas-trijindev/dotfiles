@@ -89,7 +89,7 @@
 
 - name: Update and apply dotfiles via chezmoi
   ansible.builtin.command:
-    cmd: "chezmoi update"
+    cmd: "chezmoi update --force"
   become: false
   check_mode: false
   environment:
