@@ -87,14 +87,29 @@
 # GDM has its own power management that suspends the machine when idle at the
 # login screen, independent of logind. Disable it via dconf override.
 
-- name: Ensure GDM dconf directory exists
+- name: Ensure GDM dconf directories exist
   ansible.builtin.file:
-    path: /etc/dconf/db/gdm.d
+    path: "{{ item }}"
     state: directory
     owner: root
     group: root
     mode: "0755"
+  loop:
+    - /etc/dconf/db/gdm.d
+    - /etc/dconf/profile
   when: ansible_facts['os_family'] == "Archlinux"
+
+- name: Configure GDM dconf profile
+  ansible.builtin.copy:
+    dest: /etc/dconf/profile/gdm
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      user-db:user
+      system-db:gdm
+  when: ansible_facts['os_family'] == "Archlinux"
+  notify: Update dconf
 
 - name: Configure GDM login screen power settings
   ansible.builtin.copy:

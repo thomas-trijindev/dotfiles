@@ -1,0 +1,50 @@
+---
+# =============================================================================
+# SSH AGENT - roles/base/tasks/ssh_agent.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Enable the built-in OpenSSH ssh-agent as a systemd user service and
+#   configure SSH_AUTH_SOCK so all processes (terminals and GUI apps) use
+#   it instead of 1Password or any other third-party agent.
+#
+# WHAT THIS DOES:
+#   1. Ensures ~/.config/environment.d/ exists
+#   2. Writes ssh-agent.conf to set SSH_AUTH_SOCK for the systemd user session
+#      (picked up by display managers, Wayland compositors, and all child processes)
+#   3. Enables and starts ssh-agent.service as a systemd user service
+#
+# NOTE: Linux only. macOS uses the system keychain agent automatically.
+# =============================================================================
+
+- name: Ensure environment.d directory exists
+  ansible.builtin.file:
+    path: "/home/{{ primary_user }}/.config/environment.d"
+    state: directory
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: "0755"
+
+# Sets SSH_AUTH_SOCK at the systemd session level so GUI apps and display
+# managers inherit it — not just interactive shells.
+- name: Set SSH_AUTH_SOCK to built-in ssh-agent socket
+  ansible.builtin.copy:
+    dest: "/home/{{ primary_user }}/.config/environment.d/ssh-agent.conf"
+    owner: "{{ primary_user }}"
+    group: "{{ primary_user }}"
+    mode: "0644"
+    content: |
+      # Managed by Ansible — use built-in OpenSSH agent, not 1Password
+      SSH_AUTH_SOCK="${XDG_RUNTIME_DIR}/ssh-agent.socket"
+
+- name: Enable and start ssh-agent systemd user service
+  ansible.builtin.systemd:
+    name: ssh-agent.service
+    enabled: yes
+    state: started
+    scope: user
+  become: yes
+  become_user: "{{ primary_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ primary_user_uid }}"
+  ignore_errors: yes  # Don't fail if session not yet running (e.g. first boot)

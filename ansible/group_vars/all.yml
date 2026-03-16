@@ -67,6 +67,11 @@ install_claude: true
 # Installs oh-my-zsh, spaceship-prompt, zsh-autosuggestions, zsh-syntax-highlighting
 install_ohmyzsh: true
 
+# Built-in SSH agent via systemd user service (Linux only)
+# Enables ssh-agent.service and sets SSH_AUTH_SOCK via environment.d
+# Set to false if you use 1Password or another SSH agent manager
+install_ssh_agent: true
+
 # Dotfiles repo to apply via chezmoi after installing it
 # Format: "github-username/repo" or full URL
 chezmoi_dotfiles_repo: "thomas-trijindev/dotfiles"

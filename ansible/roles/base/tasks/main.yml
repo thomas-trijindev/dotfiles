@@ -62,3 +62,12 @@
 - name: Install Claude Code
   ansible.builtin.import_tasks: claude.yml
   when: install_claude | default(false)
+
+# Configure built-in OpenSSH agent via systemd user service
+# Ensures SSH_AUTH_SOCK points to the built-in agent, not 1Password
+# Linux only — macOS uses the system keychain agent automatically
+- name: Configure built-in SSH agent
+  ansible.builtin.import_tasks: ssh_agent.yml
+  when:
+    - install_ssh_agent | default(true)
+    - ansible_facts['os_family'] != "Darwin"
