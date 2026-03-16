@@ -28,10 +28,18 @@
 # PACKAGES
 # -----------------------------------------------------------------------------
 
-- name: Install cifs-utils
+- name: Install cifs-utils and cronie
   community.general.pacman:
-    name: cifs-utils
+    name:
+      - cifs-utils
+      - cronie
     state: present
+
+- name: Enable and start cronie service
+  ansible.builtin.systemd:
+    name: cronie
+    enabled: yes
+    state: started
 
 - name: Import autofs maintainer GPG key
   ansible.builtin.command:
