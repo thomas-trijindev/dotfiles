@@ -1,204 +1,100 @@
 ---
 # =============================================================================
-# MOUNTS ROLE - roles/mounts/tasks/main.yml
+# NAS MOUNTS - roles/mounts/tasks/main.yml
 # =============================================================================
 #
 # PURPOSE:
-#   Configure autofs to automatically mount SMB/CIFS NAS shares on demand.
-#   Shares are mounted under /mnt/nas/<share> and unmounted after inactivity.
+#   Configure autofs for on-demand SMB/CIFS NAS mounts. Shares mount under
+#   /mnt/<share> on access and unmount after nas_autofs_timeout seconds idle.
 #
-# CONFIGURATION:
-#   All settings are in group_vars/all.yml under "NAS MOUNTS" section.
-#   Credentials (nas_username / nas_password) should be provided via:
-#     ansible-playbook local.yml -e "nas_username=myuser nas_password=mypass"
-#     or via an Ansible vault file.
+# PREREQUISITES:
+#   - Tailscale must be installed and authenticated (nas_host is a Tailscale IP)
+#   - nas_username and nas_password must be supplied at runtime via vault or -e
 #
-# FILES CREATED:
-#   - /etc/samba/credentials         (mode 0600, root-owned)
-#   - /etc/auto.master.d/smb.autofs  (master map entry)
-#   - /etc/auto.smb                  (per-share map)
-#   - /usr/local/bin/nas-health-check.sh  (cron health check)
-#
-# WHEN THIS ROLE RUNS:
-#   Only on Arch/CachyOS, controlled by install_autofs in group_vars/all.yml.
+# USAGE:
+#   ansible-playbook local.yml --tags mounts
+#   ansible-playbook local.yml -e "install_autofs=true nas_username=X nas_password=Y"
 #
 # =============================================================================
 
-# -----------------------------------------------------------------------------
-# GATHER USER UID
-# -----------------------------------------------------------------------------
-
 - name: Get primary user UID
   ansible.builtin.command: id -u {{ primary_user }}
-  register: _uid
+  register: mounts_user_uid
   changed_when: false
-  check_mode: false
 
-- name: Set primary_user_uid fact
-  ansible.builtin.set_fact:
-    primary_user_uid: "{{ _uid.stdout }}"
-
-# -----------------------------------------------------------------------------
-# PACKAGES
-# -----------------------------------------------------------------------------
-
-- name: Install cifs-utils and cronie
-  community.general.pacman:
+- name: Install autofs and SMB dependencies
+  ansible.builtin.dnf:
     name:
+      - autofs
       - cifs-utils
       - cronie
     state: present
 
-- name: Enable and start cronie service
+- name: Enable crond service
   ansible.builtin.systemd:
-    name: cronie
+    name: crond
     enabled: yes
     state: started
 
-- name: Import autofs maintainer GPG key
-  ansible.builtin.command:
-    cmd: gpg --keyserver keyserver.ubuntu.com --recv-keys CD0A6E3CBB6768800B0736A8E7677380F54FD8A9
-  become: yes
-  become_user: "{{ primary_user }}"
-  changed_when: false
-
-- name: Check if autofs is installed
-  ansible.builtin.command: pacman -Qi autofs
-  register: autofs_check
-  changed_when: false
-  failed_when: false
-
-- name: Clone autofs from AUR
-  ansible.builtin.git:
-    repo: https://aur.archlinux.org/autofs.git
-    dest: /tmp/aur_builds/autofs
-    version: master
-  become: yes
-  become_user: "{{ primary_user }}"
-  when: autofs_check.rc != 0
-
-- name: Install autofs build dependencies
-  community.general.pacman:
-    name:
-      - sssd
-      - rpcsvc-proto
-    state: present
-  when: autofs_check.rc != 0
-
-- name: Build autofs
-  ansible.builtin.shell:
-    cmd: makepkg --noconfirm --needed
-    chdir: /tmp/aur_builds/autofs
-  become: yes
-  become_user: "{{ primary_user }}"
-  when: autofs_check.rc != 0
-
-- name: Find built autofs package
-  ansible.builtin.find:
-    paths: /tmp/aur_builds/autofs
-    patterns: "*.pkg.tar.zst"
-  register: autofs_pkg
-  when: autofs_check.rc != 0
-
-- name: Install autofs package
-  community.general.pacman:
-    name: "{{ autofs_pkg.files | map(attribute='path') | list }}"
-    state: present
-  when:
-    - autofs_check.rc != 0
-    - autofs_pkg.files | default([]) | length > 0
-
-# -----------------------------------------------------------------------------
-# CREDENTIALS
-# -----------------------------------------------------------------------------
-
-- name: Ensure /etc/samba directory exists
+- name: Create /etc/samba directory
   ansible.builtin.file:
     path: /etc/samba
     state: directory
-    owner: root
-    group: root
-    mode: "0755"
+    mode: '0755'
 
-- name: Deploy SMB credentials file
+- name: Write NAS credentials file
   ansible.builtin.copy:
     dest: "{{ nas_credentials_file }}"
-    owner: root
-    group: root
-    mode: "0600"
     content: |
       username={{ nas_username }}
       password={{ nas_password }}
-  no_log: true  # Don't log credentials to stdout
-  notify: Restart autofs
-
-# -----------------------------------------------------------------------------
-# AUTOFS CONFIGURATION
-# -----------------------------------------------------------------------------
-
-- name: Ensure /etc/autofs/auto.master.d directory exists
-  ansible.builtin.file:
-    path: /etc/autofs/auto.master.d
-    state: directory
+    mode: '0600'
     owner: root
     group: root
-    mode: "0755"
+  no_log: true
+  notify: Restart autofs
 
-- name: Deploy autofs master map entry for NAS
+- name: Create autofs drop-in directory
+  ansible.builtin.file:
+    path: /etc/auto.master.d
+    state: directory
+    mode: '0755'
+
+- name: Deploy autofs master map entry
   ansible.builtin.template:
     src: smb.autofs.j2
-    dest: /etc/autofs/auto.master.d/smb.autofs
-    owner: root
-    group: root
-    mode: "0644"
+    dest: /etc/auto.master.d/smb.autofs
+    mode: '0644'
   notify: Restart autofs
 
-- name: Deploy NAS share map
+- name: Deploy SMB map file
   ansible.builtin.template:
     src: auto.smb.j2
-    dest: /etc/autofs/auto.smb
-    owner: root
-    group: root
-    mode: "0644"
+    dest: /etc/auto.smb
+    mode: '0644'
   notify: Restart autofs
 
-# -----------------------------------------------------------------------------
-# MOUNT BASE DIRECTORY
-# -----------------------------------------------------------------------------
-
-- name: Ensure NAS mount base directory exists
+- name: Ensure mount base exists
   ansible.builtin.file:
     path: "{{ nas_mount_base }}"
     state: directory
-    owner: root
-    group: root
-    mode: "0755"
+    mode: '0755'
 
-# -----------------------------------------------------------------------------
-# SERVICE
-# -----------------------------------------------------------------------------
-
-- name: Enable and start autofs service
+- name: Enable and start autofs
   ansible.builtin.systemd:
     name: autofs
     enabled: yes
     state: started
 
-# -----------------------------------------------------------------------------
-# HEALTH CHECK CRON
-# -----------------------------------------------------------------------------
-
 - name: Deploy NAS health check script
   ansible.builtin.template:
     src: nas-health-check.sh.j2
     dest: /usr/local/bin/nas-health-check.sh
-    owner: root
-    group: root
-    mode: "0755"
+    mode: '0755'
 
 - name: Schedule NAS health check cron job
   ansible.builtin.cron:
-    name: "NAS mount health check"
+    name: "NAS health check"
     minute: "*/5"
-    job: /usr/local/bin/nas-health-check.sh
+    job: "/usr/local/bin/nas-health-check.sh"
     user: root

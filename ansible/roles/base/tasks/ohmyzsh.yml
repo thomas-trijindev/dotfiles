@@ -55,6 +55,11 @@
   when: not ohmyzsh_stat.stat.exists
   become: false
 
+- name: Change default shell to zsh
+  ansible.builtin.user:
+    name: "{{ primary_user }}"
+    shell: /usr/bin/zsh
+
 # -----------------------------------------------------------------------------
 # SPACESHIP PROMPT THEME
 # -----------------------------------------------------------------------------

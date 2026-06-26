@@ -23,11 +23,6 @@
 
 collections:
   # community.general - Provides modules for various package managers and tools
-  # Used for: pacman, homebrew, homebrew_cask, and many other modules
+  # Used for: homebrew_cask and many other modules
   # Docs: https://docs.ansible.com/ansible/latest/collections/community/general/
   - name: community.general
-
-  # kewlfft.aur - Provides the 'aur' module for Arch User Repository packages
-  # Used for: Installing AUR packages on Arch/CachyOS
-  # Docs: https://github.com/kewlfft/ansible-aur
-  - name: kewlfft.aur

@@ -9,10 +9,9 @@
 #
 # WHAT THIS ROLE INSTALLS:
 #   1. System packages   - Common CLI tools (git, neovim, ripgrep, etc.)
-#   2. AUR support       - Paru helper and AUR packages (Arch only)
-#   3. NordVPN           - VPN client (optional, controlled by feature flag)
-#   4. chezmoi           - Dotfiles manager (optional, controlled by feature flag)
-#   5. Claude Code       - AI coding assistant (optional, controlled by feature flag)
+#   2. NordVPN           - VPN client (optional, controlled by feature flag)
+#   3. chezmoi           - Dotfiles manager (optional, controlled by feature flag)
+#   4. Claude Code       - AI coding assistant (optional, controlled by feature flag)
 #
 # HOW TO ADD NEW COMPONENTS:
 #   1. Create a new task file (e.g., mytool.yml)
@@ -29,13 +28,6 @@
 # See packages.yml for the package lists
 - name: Install standard packages
   ansible.builtin.import_tasks: packages.yml
-
-# Set up AUR (Arch User Repository) support
-# Installs paru AUR helper and any packages listed in packages_aur
-# Only runs on Arch-based systems (Arch, Manjaro, EndeavourOS, CachyOS, etc.)
-- name: Setup AUR support
-  ansible.builtin.import_tasks: aur.yml
-  when: ansible_facts['os_family'] == "Archlinux"
 
 # Install NordVPN client
 # Uses different methods per platform: AUR on Arch, cask on macOS
@@ -68,6 +60,12 @@
 - name: Install Claude Code
   ansible.builtin.import_tasks: claude.yml
   when: install_claude | default(false)
+
+# Install Tailscale VPN — required before NAS mounts if NAS is on Tailscale
+# After install, run 'tailscale up' manually to authenticate
+- name: Install Tailscale
+  ansible.builtin.import_tasks: tailscale.yml
+  when: install_tailscale | default(false)
 
 # Configure built-in OpenSSH agent via systemd user service
 # Ensures SSH_AUTH_SOCK points to the built-in agent, not 1Password

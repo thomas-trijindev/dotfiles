@@ -18,21 +18,7 @@
   changed_when: false
   failed_when: false
 
-# mise-bin is in the AUR on Arch/CachyOS
-- name: Install mise (Arch/CachyOS via AUR)
-  kewlfft.aur.aur:
-    name: mise-bin
-    state: present
+- name: Install mise via official installer
+  ansible.builtin.shell: curl https://mise.run | sh
   become: false
-  when:
-    - ansible_facts['os_family'] == "Archlinux"
-    - mise_check.rc != 0
-
-- name: Install mise (macOS via Homebrew)
-  community.general.homebrew:
-    name: mise
-    state: present
-  become: false
-  when:
-    - ansible_facts['os_family'] == "Darwin"
-    - mise_check.rc != 0
+  when: mise_check.rc != 0

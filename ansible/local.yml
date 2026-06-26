@@ -5,25 +5,23 @@
 #
 # PURPOSE:
 #   This is the entry point for the entire Ansible configuration. It sets up
-#   a new machine with your preferred packages, tools, and configurations.
+#   a new Fedora machine with your preferred packages, tools, and configurations.
 #
 # HOW TO RUN:
 #   ./run.sh                    # Uses the run.sh wrapper script
 #   ansible-playbook local.yml  # Direct execution (requires sudo)
 #
 # EXECUTION ORDER:
-#   1. pre_tasks  - Gather system info and detect hardware
+#   1. pre_tasks  - Gather system info
 #   2. roles      - Install packages and configure system
 #   3. post_tasks - Display completion message with next steps
 #
 # HOW TO MODIFY:
 #   - Add new roles: Create folder in roles/, add to 'roles:' section below
 #   - Add pre/post setup: Add tasks to pre_tasks/post_tasks sections
-#   - Change target OS detection: Modify the Gathering Details task
 #
 # TAGS (run specific parts):
 #   ansible-playbook local.yml --tags base      # Only base role
-#   ansible-playbook local.yml --tags power     # Only power role
 #   ansible-playbook local.yml --tags packages  # Only package tasks
 #
 # =============================================================================
@@ -54,32 +52,6 @@
           - network     # Network interfaces
           - virtual     # VM detection
 
-    # Detect if this is a laptop or desktop (Linux only)
-    # Used to conditionally apply power management settings
-    - name: Get chassis type from hostnamectl (Linux)
-      ansible.builtin.command: hostnamectl --json=short
-      register: hostnamectl_output
-      changed_when: false      # Don't mark as changed (read-only command)
-      check_mode: false        # Run even in check mode (--check)
-      when: ansible_facts['os_family'] != "Darwin"
-
-    # Parse the JSON output and extract chassis type
-    - name: Set chassis fact (Linux)
-      ansible.builtin.set_fact:
-        detected_chassis: "{{ (hostnamectl_output.stdout | from_json).Chassis | default('unknown') }}"
-      when: ansible_facts['os_family'] != "Darwin"
-
-    # macOS doesn't have hostnamectl, so detect MacBook from model name
-    - name: Set chassis fact (macOS)
-      ansible.builtin.set_fact:
-        detected_chassis: "{{ 'laptop' if ansible_facts['model'] is defined and 'MacBook' in ansible_facts['model'] else 'desktop' }}"
-      when: ansible_facts['os_family'] == "Darwin"
-
-    # Debug output for troubleshooting
-    - name: Debug chassis
-      ansible.builtin.debug:
-        msg: "Chassis is: '{{ detected_chassis }}' - equals laptop: {{ detected_chassis == 'laptop' }}"
-
     # Display all detected OS information
     - name: Detect Operating System
       ansible.builtin.debug:
@@ -87,7 +59,6 @@
           OS Family: {{ ansible_facts['os_family'] }}
           Distribution: {{ ansible_facts['distribution'] }}
           Version: {{ ansible_facts['distribution_version'] }}
-          Chassis: {{ detected_chassis }}
 
     # Get the numeric UID of the primary user (needed for systemd user services)
     - name: Get primary user UID
@@ -100,28 +71,12 @@
       ansible.builtin.set_fact:
         primary_user_uid: "{{ primary_user_uid.stdout }}"
 
-    # Enable the swayidle service for screen locking/power management
-    # This runs as a user service, not system service
-    - name: Enable swayidle user service (Linux only)
-      ansible.builtin.systemd:
-        name: swayidle.service
-        enabled: yes
-        state: started
-        scope: user           # User service, not system
-      become: yes
-      become_user: "{{ primary_user }}"
-      environment:
-        # Required for user systemd services
-        XDG_RUNTIME_DIR: "/run/user/{{ primary_user_uid }}"
-      ignore_errors: yes      # Don't fail if swayidle not yet installed
-      when: ansible_facts['os_family'] != "Darwin"
-
   # ---------------------------------------------------------------------------
   # ROLES
   # Main configuration happens here. Each role is a self-contained unit.
   # ---------------------------------------------------------------------------
   roles:
-    # Base role: Installs packages, AUR support, and optional tools
+    # Base role: Installs packages and optional tools
     - role: base
       tags: [base, packages]
 
@@ -130,27 +85,11 @@
 #    - role: ssh
 #      tags: [ssh, security]
 
-    # Fingerprint role: Configures fingerprint authentication (currently disabled)
-    # Uncomment to enable fingerprint auth for sudo/login
-#    - role: fingerprint
-#      tags: [fingerprint, auth]
-#      when: fingerprint_enabled | default(true)
-
-    # Power role: Laptop power management (lid close, idle timeout, etc.)
-    # Only runs on Linux laptops (or if force_power_management is true)
-    - role: power
-      tags: [power, laptop]
-      when:
-        - ansible_facts['os_family'] != "Darwin"    # Not macOS
-        - detected_chassis | default('unknown') == 'laptop' or force_power_management | default(false)
-
-    # Mounts role: AutoFS SMB/CIFS NAS mounts
-    # Only runs on Arch/CachyOS when install_autofs is true
+    # Mounts role: AutoFS SMB/CIFS NAS mounts (Tailscale required)
+    # Enable install_autofs and set nas_host to NAS Tailscale IP before running
     - role: mounts
       tags: [mounts, nas]
-      when:
-        - ansible_facts['os_family'] == "Archlinux"
-        - install_autofs | default(false)
+      when: install_autofs | default(false) | bool
 
   # ---------------------------------------------------------------------------
   # POST-TASKS
@@ -163,12 +102,8 @@
           ========================================
           System configuration complete!
 
-          Chassis detected: {{ detected_chassis }}
-
           NEXT STEPS:
           1. Add SSH public key to ~/.ssh/authorized_keys
-          2. Run 'fprintd-enroll' to register fingerprint
-          3. Test SSH login before disconnecting
-          4. Run 'chezmoi init --apply' as your user
-          5. Reboot to apply all changes
+          2. Run 'chezmoi init --apply' as your user
+          3. Reboot to apply all changes
           ========================================

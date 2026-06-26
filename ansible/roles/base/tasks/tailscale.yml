@@ -1,0 +1,31 @@
+---
+# =============================================================================
+# TAILSCALE INSTALLATION - roles/base/tasks/tailscale.yml
+# =============================================================================
+#
+# PURPOSE:
+#   Install Tailscale VPN on Fedora using the official installer script.
+#   After installation you must run 'tailscale up' manually to authenticate.
+#
+# FEATURE FLAG:
+#   Controlled by 'install_tailscale' variable in group_vars/all.yml
+#
+# NOTE: Enable this before the mounts role if NAS is on Tailscale.
+#
+# =============================================================================
+
+- name: Check if Tailscale is installed
+  ansible.builtin.command: which tailscale
+  register: tailscale_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Tailscale via official installer
+  ansible.builtin.shell: curl -fsSL https://tailscale.com/install.sh | sh
+  when: tailscale_check.rc != 0
+
+- name: Enable and start tailscaled
+  ansible.builtin.systemd:
+    name: tailscaled
+    enabled: yes
+    state: started

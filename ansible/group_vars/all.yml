@@ -17,8 +17,6 @@
 #   2. Feature Flags          - Toggle optional software installations
 #   3. Packages               - Lists of packages per distribution
 #   4. SSH Configuration      - SSH hardening settings (if ssh role enabled)
-#   5. Fingerprint Config     - Fingerprint auth settings (if enabled)
-#   6. Power Management       - Laptop lid/idle/power button behavior (using TLP - Linux only)
 #
 # =============================================================================
 
@@ -35,14 +33,6 @@
 
 primary_user: "{{ lookup('env', 'USER') | default('tjunkie', true) }}"
 
-# Enable fingerprint authentication for sudo/login?
-# Requires fprintd package and enrolled fingerprint
-enable_fingerprint: true
-
-# Force power management role even on desktops?
-# Set to true if you want laptop-style power settings on a desktop
-force_power_management: false
-
 
 # =============================================================================
 # FEATURE FLAGS
@@ -53,7 +43,7 @@ force_power_management: false
 # HOW TO OVERRIDE ON COMMAND LINE:
 #   ansible-playbook local.yml -e "install_nordvpn=false"
 
-# NordVPN - VPN client (installs GUI version on Arch via AUR)
+# NordVPN - VPN client (installs via official NordVPN installer)
 install_nordvpn: true
 
 # chezmoi - Dotfiles manager (https://chezmoi.io)
@@ -70,8 +60,13 @@ install_ohmyzsh: true
 # mise - polyglot runtime version manager (replaces nvm, pyenv, etc.)
 install_mise: true
 
-# AutoFS NAS mounts (Arch/CachyOS only)
-install_autofs: true
+# Tailscale VPN — install before enabling NAS mounts (NAS is on Tailscale)
+# After install, run 'tailscale up' manually to authenticate
+install_tailscale: false
+
+# AutoFS NAS mounts — requires Tailscale to be up and nas_host set to Tailscale IP
+# Enable after Tailscale is authenticated
+install_autofs: false
 
 # Built-in SSH agent via systemd user service (Linux only)
 # Enables ssh-agent.service and sets SSH_AUTH_SOCK via environment.d
@@ -94,9 +89,7 @@ chezmoi_dotfiles_repo: "thomas-trijindev/dotfiles"
 #   2. Add to distro-specific list if name differs or not available everywhere
 #
 # PACKAGE NAME DIFFERENCES:
-#   Some packages have different names on different distros:
-#   - fd: 'fd' on Arch/macOS
-#   - ripgrep: 'ripgrep' everywhere, but command is 'rg'
+#   - fd: 'fd-find' on Fedora/RHEL
 
 # Packages installed on ALL distributions
 packages_common:
@@ -111,13 +104,11 @@ packages_common:
   - unzip     # Archive extraction
   - jq        # JSON processor
 
-# Arch Linux / CachyOS specific packages
-packages_arch:
-  - docker-buildx           # BuildKit plugin for Docker (faster builds, replaces legacy builder)
-  - fd                      # Fast find replacement
+# Fedora specific packages (via dnf)
+packages_fedora:
+  - fd-find                 # Fast find replacement (note: command is 'fdfind' or 'fd' via symlink)
   - bat                     # Cat with syntax highlighting
   - eza                     # Modern ls replacement
-  - swayidle                # Idle manager for Wayland
   - zsh                     # Z shell
   - zsh-autosuggestions     # Fish-like autosuggestions
   - zsh-syntax-highlighting # Fish-like syntax highlighting
@@ -125,23 +116,34 @@ packages_arch:
   - cowsay                  # Cowsay ascii art
   - fortune-mod             # Fortune cookie quotes
   - lolcat                  # Rainbow colouriser
+  - autojump                # Directory jump shortcut (j)
 
-# AUR packages (Arch only)
-# These are built from source using paru
-# WARNING: AUR packages can take a long time to build
-packages_aur:
-  - autojump  # Directory jump shortcut (j) — AUR only on Arch
 
-# macOS specific packages (via Homebrew)
-packages_macos:
-  - fd          # Fast find replacement
-  - bat         # Cat with syntax highlighting
-  - eza         # Modern ls replacement
-  - autojump    # Directory jump shortcut (j)
-  - fastfetch   # Fast system info display
-  - cowsay      # Cowsay ascii art
-  - fortune     # Fortune cookie quotes
-  - lolcat      # Rainbow colouriser
+# =============================================================================
+# NAS MOUNTS
+# =============================================================================
+# AutoFS SMB/CIFS mounts for NAS shares. Mounts on-demand under nas_mount_base,
+# unmounts after nas_autofs_timeout seconds of inactivity.
+#
+# PREREQUISITES:
+#   - Tailscale must be installed and authenticated
+#   - nas_host must be the NAS Tailscale IP (100.x.x.x), not the LAN IP
+#
+# CREDENTIALS: supply at runtime via vault or -e — do NOT commit real values.
+#   ansible-playbook local.yml -e "nas_username=X nas_password=Y"
+
+nas_host: "192.168.0.6"             # UPDATE to Tailscale IP (100.x.x.x)
+nas_mount_base: "/mnt"
+nas_credentials_file: "/etc/samba/credentials"
+nas_autofs_timeout: 60              # Unmount after this many seconds of inactivity
+
+nas_username: ""                    # Override at runtime — do not commit
+nas_password: ""                    # Override at runtime — do not commit
+
+nas_shares:
+  - maps
+  - reference_drawings
+  - reject_images
 
 
 # =============================================================================
@@ -167,94 +169,3 @@ ssh_client_alive_count_max: 2          # Disconnect after 2 missed keepalives
 # Users allowed to SSH into this machine
 ssh_allowed_users:
   - "{{ primary_user }}"
-
-
-# =============================================================================
-# FINGERPRINT CONFIGURATION
-# =============================================================================
-# Which PAM services should accept fingerprint authentication?
-# These are the services that will prompt for fingerprint instead of password
-#
-# TO ENABLE: Uncomment the fingerprint role in local.yml
-
-fingerprint_pam_services:
-  - sudo      # Use fingerprint for sudo commands
-  - login     # Use fingerprint for console login
-  - polkit-1  # Use fingerprint for privilege escalation dialogs
-
-
-# =============================================================================
-# POWER MANAGEMENT
-# =============================================================================
-# Controls laptop behavior for lid close, idle timeout, and power button.
-# These settings are applied via systemd-logind and swayidle.
-#
-# VALID VALUES for lid_switch and idle_action:
-#   ignore    - Do nothing
-#   lock      - Lock the screen
-#   suspend   - Suspend to RAM
-#   hibernate - Suspend to disk
-#   poweroff  - Shut down
-#
-# NOTE: These only apply on Linux laptops (or if force_power_management=true)
-
-# What to do when the laptop lid is closed
-lid_switch_on_ac: ignore             # On AC power: stay alive (don't suspend)
-lid_switch_on_battery: suspend       # On battery: suspend to save power
-
-# What to do when system is idle (no user activity)
-# logind is set to ignore — idle is handled by swayidle (user session) and GDM (login screen)
-idle_action: ignore
-idle_action_sec: 30min               # Fallback if idle_action is ever changed from ignore
-
-# GDM login screen idle behavior (before user logs in)
-gdm_screen_off_ac_sec: 300           # Blank screen after 5 min idle on AC
-gdm_battery_suspend_sec: 600         # Suspend after 10 min idle on battery
-
-# swayidle user session idle behavior (after login, battery only — AC just turns off screen)
-swayidle_battery_suspend_sec: 600    # Suspend after 10 min idle on battery
-
-# What to do when lid is closed while docked (external display connected)
-lid_switch_docked: ignore            # Ignore lid when docked (use external display)
-
-# What to do when power button is pressed
-power_key_action: poweroff           # Shut down when power button pressed
-
-
-# =============================================================================
-# TLP BATTERY MANAGEMENT
-# =============================================================================
-# Controls battery charge thresholds and CPU performance via TLP.
-# Keeping the battery between 40-50% when plugged in extends battery lifespan.
-#
-# NOTE: Requires tlp or tlp-pd to be installed (managed separately / pre-installed)
-
-tlp_start_charge_thresh: 40          # Start charging when battery drops below this %
-tlp_stop_charge_thresh: 50           # Stop charging when battery reaches this %
-tlp_cpu_governor_on_ac: performance  # CPU scaling governor on AC power
-tlp_cpu_perf_policy_on_ac: performance  # CPU energy/performance policy on AC
-
-
-# =============================================================================
-# NAS MOUNTS
-# =============================================================================
-# AutoFS SMB/CIFS mounts for NAS shares. Shares are mounted on-demand under
-# nas_mount_base and automatically unmounted after nas_autofs_timeout seconds.
-#
-# CREDENTIALS: nas_username and nas_password must be supplied at run time —
-# do NOT commit real values here. Pass them via:
-#   ansible-playbook local.yml -e "nas_username=myuser nas_password=mypass"
-#   or use an Ansible vault file.
-
-nas_host: "192.168.0.6"
-nas_mount_base: "/mnt"
-nas_credentials_file: "/etc/samba/credentials"
-nas_autofs_timeout: 60               # Unmount after this many seconds of inactivity
-
-nas_username: ""                     # Override at runtime — do not commit
-nas_password: ""                     # Override at runtime — do not commit
-
-nas_shares:
-  - maps
-  - reference_drawings
-  - reject_images

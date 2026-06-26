@@ -4,18 +4,12 @@
 # =============================================================================
 #
 # PURPOSE:
-#   Install common packages across all supported operating systems.
-#   Uses the native package manager for each distribution.
-#
-# SUPPORTED SYSTEMS:
-#   - Arch Linux / CachyOS (pacman)
-#   - macOS (homebrew)
+#   Install common packages on Fedora via dnf.
 #
 # PACKAGE LISTS:
 #   Defined in group_vars/all.yml:
 #   - packages_common  : Installed on all systems
-#   - packages_arch    : Additional Arch-specific packages
-#   - packages_macos   : Additional macOS-specific packages
+#   - packages_fedora  : Additional Fedora-specific packages
 #
 # HOW TO ADD PACKAGES:
 #   1. Open group_vars/all.yml
@@ -24,42 +18,8 @@
 #
 # =============================================================================
 
-
-# -----------------------------------------------------------------------------
-# UPDATE PACKAGE CACHE
-# -----------------------------------------------------------------------------
-# Always update the package database before installing to ensure we get
-# the latest versions and avoid "package not found" errors.
-
-- name: Update package cache (Arch/CachyOS)
-  community.general.pacman:
-    update_cache: yes
-  when: ansible_facts['os_family'] == "Archlinux"
-
-# become: no - Homebrew should NOT be run as root
-- name: Update Homebrew (macOS)
-  community.general.homebrew:
-    update_homebrew: yes
-  when: ansible_facts['os_family'] == "Darwin"
-  become: no
-
-
-# -----------------------------------------------------------------------------
-# INSTALL PACKAGES
-# -----------------------------------------------------------------------------
-# Install packages from the combined common + distro-specific lists.
-# Each task merges the two lists and installs all packages.
-
-- name: Install packages (Arch/CachyOS)
-  community.general.pacman:
-    name: "{{ packages_common + packages_arch }}"
-    state: present    # Ensure installed (won't reinstall if already present)
-  when: ansible_facts['os_family'] == "Archlinux"
-
-# become: no - Homebrew should NOT be run as root
-- name: Install packages (macOS)
-  community.general.homebrew:
-    name: "{{ packages_common + packages_macos }}"
+- name: Install packages (Fedora)
+  ansible.builtin.dnf:
+    name: "{{ packages_common + packages_fedora }}"
     state: present
-  when: ansible_facts['os_family'] == "Darwin"
-  become: no
+    skip_broken: yes

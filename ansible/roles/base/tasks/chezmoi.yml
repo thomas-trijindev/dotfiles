@@ -38,32 +38,15 @@
   failed_when: false
 
 # -----------------------------------------------------------------------------
-# ARCH/CACHYOS
+# FEDORA
 # -----------------------------------------------------------------------------
-# chezmoi is available in the official Arch repos
+# chezmoi is available in the official Fedora repos
 
-- name: Install chezmoi (Arch/CachyOS)
-  community.general.pacman:
+- name: Install chezmoi (Fedora)
+  ansible.builtin.dnf:
     name: chezmoi
     state: present
-  when:
-    - ansible_facts['os_family'] == "Archlinux"
-    - chezmoi_check.rc != 0
-
-# -----------------------------------------------------------------------------
-# MACOS
-# -----------------------------------------------------------------------------
-# chezmoi is available via Homebrew
-
-# become: no - Homebrew should NOT be run as root
-- name: Install chezmoi (macOS)
-  community.general.homebrew:
-    name: chezmoi
-    state: present
-  when:
-    - ansible_facts['os_family'] == "Darwin"
-    - chezmoi_check.rc != 0
-  become: no
+  when: chezmoi_check.rc != 0
 
 # -----------------------------------------------------------------------------
 # APPLY DOTFILES
