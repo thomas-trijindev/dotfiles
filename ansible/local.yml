@@ -30,6 +30,7 @@
   hosts: localhost
   connection: local       # Run locally, not via SSH
   become: yes             # Run with sudo/root privileges
+  gather_facts: false     # Disable implicit fact-gathering (done explicitly in pre_tasks without become)
 
   # ---------------------------------------------------------------------------
   # VARIABLES
@@ -51,6 +52,7 @@
           - hardware    # CPU, memory info
           - network     # Network interfaces
           - virtual     # VM detection
+      become: false
 
     # Display all detected OS information
     - name: Detect Operating System
@@ -59,6 +61,7 @@
           OS Family: {{ ansible_facts['os_family'] }}
           Distribution: {{ ansible_facts['distribution'] }}
           Version: {{ ansible_facts['distribution_version'] }}
+      become: false
 
     # Get the numeric UID of the primary user (needed for systemd user services)
     - name: Get primary user UID
@@ -66,10 +69,12 @@
       register: primary_user_uid
       changed_when: false
       check_mode: false
+      become: false
 
     - name: Set user UID fact
       ansible.builtin.set_fact:
         primary_user_uid: "{{ primary_user_uid.stdout }}"
+      become: false
 
   # ---------------------------------------------------------------------------
   # ROLES

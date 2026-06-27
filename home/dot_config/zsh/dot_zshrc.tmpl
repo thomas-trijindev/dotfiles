@@ -1,7 +1,7 @@
 # OS SPECIFIC ENV SETTING
 if [[ $OSTYPE = darwin* ]]; then
     export BREW_PATH="/opt/homebrew/bin"
-    export BREW_OPT_PATH="opt/homebrew/opt"
+    export BREW_OPT_PATH="/opt/homebrew/opt"
     export PYTHONBIN_PATH="$HOME/Library/Python/3.9/bin"
 
     export PATH=$PYTHONBIN_PATH:$BREW_PATH:$HOME/.local/bin:$PATH
@@ -24,7 +24,7 @@ else
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
     [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-    ## env for fzf (linux/arch)
+    ## env for fzf (linux)
 	export FZF_OS_ENV_PATH="/usr/share/fzf/"
 	export FD_FILENAME="fd"
 fi

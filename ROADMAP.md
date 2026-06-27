@@ -13,7 +13,7 @@ Full end-to-end playbook support for macOS. Core package install and dotfiles al
 #### Phase 1 — Bootstrap
 
 - **Homebrew install task** (`roles/base/tasks/homebrew.yml`): install Homebrew if `brew` is not already present, including Xcode CLT. Must run before `packages.yml` on Darwin. Import in `main.yml` with `when: Darwin`.
-- **Audit `packages_common` names**: verify every package in the common list resolves correctly under both `pacman` and `brew` (e.g. `fd`, `ripgrep`, `neovim`). Split any divergent names into `packages_arch` / `packages_macos`.
+- **Audit `packages_common` names**: verify every package in the common list resolves correctly under both `dnf` and `brew` (e.g. `fd`, `ripgrep`, `neovim`). Split any divergent names into `packages_fedora` / `packages_macos`.
 
 #### Phase 2 — macOS Role
 
@@ -59,21 +59,7 @@ ZSH (XDG-compliant, oh-my-zsh + spaceship), tmux, and neovim configs deployed vi
 
 ### mise Runtime Version Manager
 
-Installed via AUR (`mise-bin`) on Arch, Homebrew on macOS. Activated in zshrc.
-
-### Niri + Noctalia-Shell via Chezmoi
-
-Niri compositor config and noctalia-shell desktop config are now managed by chezmoi.
-
-- `~/.config/niri/config.kdl` — root config that includes cfg/*.kdl splits
-- `~/.config/niri/cfg/` — animation, autostart, input, layout, rules, display, keybinds, misc
-- `~/.config/noctalia/colors.json` — colorscheme overrides (Catppuccin-based)
-- `~/.config/noctalia/plugins.json` — enabled plugins (battery-threshold, tailscale)
-- `~/.config/noctalia/settings.json` — all noctalia UI/behaviour settings
-
-Note: `plugins/` directory is excluded (auto-installed by noctalia from `plugins.json`). `colorschemes/` is excluded (empty, managed by noctalia). Machine-specific display output config lives in `cfg/display.kdl` (currently inactive via `/-` comment for the output block).
-
-Also fixed: `swayidle.service` now gates on `ConditionEnvironment=NIRI_SOCKET` instead of `WAYLAND_DISPLAY` so it only starts inside a niri session (niri is the only compositor that exports `NIRI_SOCKET` and the only one the `niri msg action` calls are compatible with).
+Installed via official installer (`curl https://mise.run | sh`) — works on Fedora and macOS. Activated in zshrc.
 
 ### Built-in SSH Agent
 

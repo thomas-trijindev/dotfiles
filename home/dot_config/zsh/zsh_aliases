@@ -17,9 +17,9 @@ else
             alias paci="sudo nala install"
             alias pacu="sudo nala update && sudo nala upgrade"
         fi
-    elif [ -e "/usr/bin/pacman" ] ; then # Arch Linux
-        alias paci="sudo pacman -S"
-        alias pacu="sudo pacman -Syu"
+    elif [ -e "/usr/bin/dnf" ] ; then # Fedora/RHEL
+        alias paci="sudo dnf install"
+        alias pacu="sudo dnf upgrade"
     fi
 fi
 

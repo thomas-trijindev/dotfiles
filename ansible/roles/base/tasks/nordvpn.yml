@@ -4,7 +4,12 @@
 # =============================================================================
 #
 # PURPOSE:
-#   Install NordVPN client on Fedora via the official NordVPN RPM repository.
+#   Install NordVPN client on all supported platforms using the appropriate
+#   method for each distribution.
+#
+# INSTALLATION METHODS:
+#   - Fedora: Official NordVPN RPM repository
+#   - macOS:  Homebrew cask
 #
 # POST-INSTALL STEPS (manual):
 #   1. Log in: nordvpn login
@@ -16,10 +21,16 @@
 #
 # =============================================================================
 
+
+# -----------------------------------------------------------------------------
+# FEDORA (via official RPM repository)
+# -----------------------------------------------------------------------------
+
 - name: Add NordVPN GPG key
   ansible.builtin.rpm_key:
     key: https://repo.nordvpn.com/gpg/nordvpn_public.asc
     state: present
+  when: ansible_facts['os_family'] != "Darwin"
 
 - name: Add NordVPN repository
   ansible.builtin.yum_repository:
@@ -29,20 +40,39 @@
     gpgkey: https://repo.nordvpn.com/gpg/nordvpn_public.asc
     gpgcheck: yes
     enabled: yes
+  when: ansible_facts['os_family'] != "Darwin"
 
 - name: Install nordvpn package
   ansible.builtin.dnf:
     name: nordvpn
     state: present
+  when: ansible_facts['os_family'] != "Darwin"
 
 - name: Add user to nordvpn group
   ansible.builtin.user:
     name: "{{ primary_user }}"
     groups: nordvpn
     append: yes
+  when: ansible_facts['os_family'] != "Darwin"
 
 - name: Enable nordvpnd service
   ansible.builtin.systemd:
     name: nordvpnd
     enabled: yes
     state: started
+  when: ansible_facts['os_family'] != "Darwin"
+
+
+# -----------------------------------------------------------------------------
+# MACOS
+# -----------------------------------------------------------------------------
+# On macOS, we use Homebrew cask to install the NordVPN app.
+# No daemon or group setup needed on macOS.
+
+# become: no - Homebrew should NOT be run as root
+- name: Install NordVPN (macOS)
+  community.general.homebrew_cask:
+    name: nordvpn
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+  become: no

@@ -23,6 +23,6 @@
 
 collections:
   # community.general - Provides modules for various package managers and tools
-  # Used for: homebrew_cask and many other modules
+  # Used for: homebrew, homebrew_cask, and many other modules
   # Docs: https://docs.ansible.com/ansible/latest/collections/community/general/
   - name: community.general

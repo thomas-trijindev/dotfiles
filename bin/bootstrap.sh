@@ -8,8 +8,8 @@
 #   Only needs to be run once per machine.
 #
 # WHAT IT INSTALLS:
-#   macOS : Xcode CLT → Homebrew → Docker Desktop → enables SSH
-#   Arch  : Docker → enables sshd
+#   macOS  : Xcode CLT → Homebrew → Docker Desktop → enables SSH
+#   Fedora : Docker → enables sshd
 #
 # AFTER THIS RUNS:
 #   macOS only: Enable SSH agent forwarding in Docker Desktop
@@ -85,14 +85,16 @@ if [[ "$OS" == "Darwin" ]]; then
     fi
 
 # =============================================================================
-# Arch Linux
+# Fedora
 # =============================================================================
 elif [[ "$OS" == "Linux" ]]; then
 
-    # Docker
+    # Docker (via official Docker CE repository)
     if ! command -v docker &>/dev/null; then
         info "Installing Docker..."
-        sudo pacman -S --noconfirm docker
+        sudo dnf -y install dnf-plugins-core
+        sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+        sudo dnf install -y docker-ce docker-ce-cli containerd.io
     else
         info "Docker: ok"
     fi
@@ -123,7 +125,7 @@ elif [[ "$OS" == "Linux" ]]; then
     fi
 
 else
-    error "Unsupported OS: $OS. Supported: macOS, Arch Linux."
+    error "Unsupported OS: $OS. Supported: macOS, Fedora."
 fi
 
 # =============================================================================
