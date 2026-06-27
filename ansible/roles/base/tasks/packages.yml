@@ -4,12 +4,17 @@
 # =============================================================================
 #
 # PURPOSE:
-#   Install common packages on Fedora via dnf.
+#   Install common packages using the native package manager for each platform.
+#
+# SUPPORTED SYSTEMS:
+#   - Fedora (dnf)
+#   - macOS (homebrew)
 #
 # PACKAGE LISTS:
 #   Defined in group_vars/all.yml:
 #   - packages_common  : Installed on all systems
 #   - packages_fedora  : Additional Fedora-specific packages
+#   - packages_macos   : Additional macOS-specific packages
 #
 # HOW TO ADD PACKAGES:
 #   1. Open group_vars/all.yml
@@ -23,3 +28,19 @@
     name: "{{ packages_common + packages_fedora }}"
     state: present
     skip_broken: yes
+  when: ansible_facts['os_family'] != "Darwin"
+
+# become: no - Homebrew should NOT be run as root
+- name: Update Homebrew (macOS)
+  community.general.homebrew:
+    update_homebrew: yes
+  when: ansible_facts['os_family'] == "Darwin"
+  become: no
+
+# become: no - Homebrew should NOT be run as root
+- name: Install packages (macOS)
+  community.general.homebrew:
+    name: "{{ packages_common + packages_macos }}"
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+  become: no

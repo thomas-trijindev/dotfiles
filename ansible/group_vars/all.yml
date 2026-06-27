@@ -89,7 +89,8 @@ chezmoi_dotfiles_repo: "thomas-trijindev/dotfiles"
 #   2. Add to distro-specific list if name differs or not available everywhere
 #
 # PACKAGE NAME DIFFERENCES:
-#   - fd: 'fd-find' on Fedora/RHEL
+#   - fd:      'fd-find' on Fedora/RHEL, 'fd' on macOS (via Homebrew)
+#   - fortune: 'fortune-mod' on Fedora, 'fortune' on macOS (via Homebrew)
 
 # Packages installed on ALL distributions
 packages_common:
@@ -117,6 +118,19 @@ packages_fedora:
   - fortune-mod             # Fortune cookie quotes
   - lolcat                  # Rainbow colouriser
   - autojump                # Directory jump shortcut (j)
+  - gh                      # GitHub CLI
+
+# macOS specific packages (via Homebrew)
+packages_macos:
+  - fd          # Fast find replacement
+  - bat         # Cat with syntax highlighting
+  - eza         # Modern ls replacement
+  - autojump    # Directory jump shortcut (j)
+  - fastfetch   # Fast system info display
+  - cowsay      # Cowsay ascii art
+  - fortune     # Fortune cookie quotes
+  - lolcat      # Rainbow colouriser
+  - gh          # GitHub CLI
 
 
 # =============================================================================

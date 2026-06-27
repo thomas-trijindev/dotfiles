@@ -1,6 +1,15 @@
 # dotfiles
 
-Ansible-based machine setup for Arch/CachyOS and macOS. Installs packages, configures tools, and deploys dotfiles via chezmoi.
+Ansible-based machine setup for Fedora and macOS. Installs packages, configures tools, and deploys dotfiles via chezmoi.
+
+## Prerequisites
+
+Ansible runs sudo non-interactively (no TTY, so fingerprint/PAM auth won't work). Set up passwordless sudo once before first run:
+
+```bash
+echo "$(whoami) ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/ansible-nopasswd
+sudo chmod 440 /etc/sudoers.d/ansible-nopasswd
+```
 
 ## Quick Start
 
@@ -10,7 +19,8 @@ ansible-galaxy collection install -r ansible/requirements.yml
 
 # Run full setup
 ./ansible/run.sh
-# Prompts: sudo password, then vault password (if vault.yml exists)
+# Prompts: vault password only (if vault.yml exists)
+# Requires NOPASSWD sudoers — see Prerequisites below
 ```
 
 If you want `CLAUDE_CODE_OAUTH_TOKEN` rendered into your zshrc, export it first:
@@ -22,18 +32,16 @@ export CLAUDE_CODE_OAUTH_TOKEN="your-token"
 
 ## What Gets Installed
 
-| Component | Arch/CachyOS | macOS | Controlled by |
-|-----------|-------------|-------|---------------|
-| Common packages (git, neovim, tmux, fzf, ripgrep, etc.) | pacman | homebrew | always |
-| Platform packages (fd, bat, eza, fastfetch, etc.) | pacman | homebrew | always |
-| AUR packages (autojump) | paru | — | always |
-| NordVPN | AUR | cask | `install_nordvpn` |
+| Component | Fedora | macOS | Controlled by |
+|-----------|--------|-------|---------------|
+| Common packages (git, neovim, tmux, fzf, ripgrep, etc.) | dnf | homebrew | always |
+| Platform packages (fd-find, bat, eza, fastfetch, etc.) | dnf | homebrew | always |
+| NordVPN | RPM repo | homebrew cask | `install_nordvpn` |
 | oh-my-zsh + spaceship + plugins | shell script | shell script | `install_ohmyzsh` |
-| chezmoi + dotfiles | pacman | homebrew | `install_chezmoi` |
-| Claude Code CLI | npm | npm | `install_claude` |
-| mise (runtime version manager) | AUR | homebrew | `install_mise` |
+| chezmoi + dotfiles | dnf | homebrew | `install_chezmoi` |
+| Claude Code CLI | official installer | official installer | `install_claude` |
+| mise (runtime version manager) | official installer | official installer | `install_mise` |
 | SSH agent (systemd) | systemd user service | — | `install_ssh_agent` |
-| Power management (TLP + swayidle) | systemd | — | laptop detection |
 | AutoFS NAS mounts (SMB/CIFS) | autofs + cifs-utils | — | `install_autofs` |
 
 ## Dotfiles (via chezmoi)
@@ -111,9 +119,6 @@ chezmoi edit ~/.config/zsh/.zshrc   # Edit source file for a given target
 # Packages only
 ansible-playbook ansible/local.yml --tags base
 
-# Power management only
-ansible-playbook ansible/local.yml --tags power
-
 # NAS mounts only
 ./ansible/run.sh --tags mounts
 
@@ -160,7 +165,7 @@ ansible-vault rekey ansible/group_vars/vault.yml
 ansible/
 ├── local.yml               # Main playbook
 ├── run.sh                  # Convenience wrapper
-├── requirements.yml        # community.general, kewlfft.aur
+├── requirements.yml        # community.general
 ├── group_vars/
 │   ├── all.yml             # All variables and feature flags
 │   └── vault.yml           # Encrypted secrets (NAS credentials, etc.)
@@ -169,22 +174,17 @@ ansible/
     │   └── tasks/
     │       ├── main.yml
     │       ├── packages.yml
-    │       ├── aur.yml
     │       ├── ohmyzsh.yml
     │       ├── chezmoi.yml
     │       ├── claude.yml
     │       ├── mise.yml
     │       ├── nordvpn.yml
     │       └── ssh_agent.yml
-    ├── power/
-    │   ├── tasks/main.yml
-    │   └── templates/
     └── mounts/
         ├── tasks/main.yml
         ├── handlers/main.yml
         └── templates/
 home/                       # chezmoi source root
-docs/                       # Setup guides
 ```
 
 ## Configuration

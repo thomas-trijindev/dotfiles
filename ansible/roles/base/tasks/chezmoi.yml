@@ -46,7 +46,24 @@
   ansible.builtin.dnf:
     name: chezmoi
     state: present
-  when: chezmoi_check.rc != 0
+  when:
+    - ansible_facts['os_family'] != "Darwin"
+    - chezmoi_check.rc != 0
+
+# -----------------------------------------------------------------------------
+# MACOS
+# -----------------------------------------------------------------------------
+# chezmoi is available via Homebrew
+
+# become: no - Homebrew should NOT be run as root
+- name: Install chezmoi (macOS)
+  community.general.homebrew:
+    name: chezmoi
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - chezmoi_check.rc != 0
+  become: no
 
 # -----------------------------------------------------------------------------
 # APPLY DOTFILES

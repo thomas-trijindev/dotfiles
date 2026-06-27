@@ -30,7 +30,7 @@
   ansible.builtin.import_tasks: packages.yml
 
 # Install NordVPN client
-# Uses different methods per platform: AUR on Arch, cask on macOS
+# Uses different methods per platform: RPM repo on Fedora, Homebrew cask on macOS
 # Controlled by install_nordvpn variable (default: false)
 - name: Install NordVPN
   ansible.builtin.import_tasks: nordvpn.yml
