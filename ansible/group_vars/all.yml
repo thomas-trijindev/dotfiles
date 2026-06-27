@@ -118,6 +118,7 @@ packages_fedora:
   - fortune-mod             # Fortune cookie quotes
   - lolcat                  # Rainbow colouriser
   - autojump                # Directory jump shortcut (j)
+  - gh                      # GitHub CLI
 
 # macOS specific packages (via Homebrew)
 packages_macos:
@@ -129,6 +130,7 @@ packages_macos:
   - cowsay      # Cowsay ascii art
   - fortune     # Fortune cookie quotes
   - lolcat      # Rainbow colouriser
+  - gh          # GitHub CLI
 
 
 # =============================================================================
