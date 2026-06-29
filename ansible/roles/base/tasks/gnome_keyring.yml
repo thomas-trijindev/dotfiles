@@ -31,7 +31,7 @@
 # password to empty, then this service will keep it unlocked for all sessions.
 - name: Deploy gnome-keyring auto-unlock user service
   ansible.builtin.copy:
-    dest: "{{ ansible_env.HOME }}/.config/systemd/user/gnome-keyring-unlock.service"
+    dest: "{{ ansible_facts['env'].HOME }}/.config/systemd/user/gnome-keyring-unlock.service"
     owner: "{{ primary_user }}"
     mode: "0644"
     content: |
