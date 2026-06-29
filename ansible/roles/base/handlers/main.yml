@@ -1,0 +1,4 @@
+---
+- name: Rebuild dconf database
+  ansible.builtin.command: dconf update
+  become: true

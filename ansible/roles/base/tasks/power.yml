@@ -1,0 +1,22 @@
+---
+# Configure GDM login screen power management via dconf system database.
+# Without this, GDM's GNOME session uses defaults that suspend on AC idle.
+# Desired behaviour: no suspend on AC, suspend after 15min on battery.
+
+- name: Configure GDM power management policy
+  ansible.builtin.copy:
+    dest: /etc/dconf/db/gdm.d/00-power
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [org/gnome/settings-daemon/plugins/power]
+      sleep-inactive-ac-timeout=3600
+      sleep-inactive-ac-type='nothing'
+      sleep-inactive-battery-timeout=900
+      sleep-inactive-battery-type='suspend'
+  become: true
+  notify: Rebuild dconf database
+
+- name: Flush handlers to apply dconf changes immediately
+  ansible.builtin.meta: flush_handlers

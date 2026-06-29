@@ -67,6 +67,22 @@
   ansible.builtin.import_tasks: tailscale.yml
   when: install_tailscale | default(false)
 
+# Ensure gnome-keyring-daemon starts for all session types (SSH + graphical)
+# Prevents Claude Code losing credentials after reboot when no graphical login yet
+- name: Configure GNOME Keyring
+  ansible.builtin.import_tasks: gnome_keyring.yml
+  when:
+    - configure_gnome_keyring | default(true)
+    - ansible_facts['os_family'] == "RedHat"
+
+# Configure GDM login screen power management
+# Prevents suspend on AC with no login; suspends on battery after idle
+- name: Configure power management
+  ansible.builtin.import_tasks: power.yml
+  when:
+    - configure_power | default(true)
+    - ansible_facts['os_family'] == "RedHat"
+
 # Configure built-in OpenSSH agent via systemd user service
 # Ensures SSH_AUTH_SOCK points to the built-in agent, not 1Password
 # Linux only — macOS uses the system keychain agent automatically

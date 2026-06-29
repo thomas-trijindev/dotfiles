@@ -1,0 +1,57 @@
+---
+# Enable gnome-keyring-daemon via systemd socket activation so it starts
+# on-demand for any session type (SSH or graphical), not just GNOME sessions.
+# Without this, Claude Code (and other libsecret apps) can't reach stored
+# credentials after a reboot unless a graphical login happened first.
+
+# Disable GDM PAM from auto-unlocking (and potentially overwriting) the keyring
+# with the user's login password. Our unlock service handles it with empty password instead.
+- name: Disable pam_gnome_keyring in GDM PAM configs
+  ansible.builtin.replace:
+    path: "{{ item }}"
+    regexp: '^(.*pam_gnome_keyring.*)$'
+    replace: '#\1'
+  loop:
+    - /etc/pam.d/gdm-password
+    - /etc/pam.d/gdm-switchable-auth
+    - /etc/pam.d/gdm-autologin
+  become: true
+
+- name: Enable gnome-keyring-daemon socket (on-demand for any session)
+  ansible.builtin.systemd:
+    name: gnome-keyring-daemon.socket
+    enabled: true
+    state: started
+    scope: user
+  become: false
+
+# Creates a user service that auto-unlocks the keyring with an empty password
+# at session start. Requires the login keyring to have no password set —
+# run 'seahorse' (Passwords and Keys) once to change the Login keyring
+# password to empty, then this service will keep it unlocked for all sessions.
+- name: Deploy gnome-keyring auto-unlock user service
+  ansible.builtin.copy:
+    dest: "{{ ansible_env.HOME }}/.config/systemd/user/gnome-keyring-unlock.service"
+    owner: "{{ primary_user }}"
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Auto-unlock GNOME Keyring (empty password)
+      After=gnome-keyring-daemon.service
+      Wants=gnome-keyring-daemon.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/bin/sh -c 'printf "" | /usr/bin/gnome-keyring-daemon --login'
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=default.target
+  become: false
+
+- name: Enable gnome-keyring auto-unlock service
+  ansible.builtin.systemd:
+    name: gnome-keyring-unlock.service
+    enabled: true
+    scope: user
+  become: false
