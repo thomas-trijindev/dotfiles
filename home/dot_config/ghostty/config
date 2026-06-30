@@ -1,0 +1,20 @@
+# Window
+window-decoration = auto
+gtk-titlebar = false
+
+# Transparency
+background-opacity = 0.95
+background-blur-radius = 20
+
+# Font
+font-family = "JetBrainsMono Nerd Font"
+font-size = 13
+
+# Padding
+window-padding-x = 12
+window-padding-y = 10
+
+# Behaviour
+scrollback-limit = 10000
+mouse-hide-while-typing = true
+copy-on-select = false
