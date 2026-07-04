@@ -7,6 +7,10 @@ background-opacity = 0.95
 background-blur-radius = 20
 
 # Font
+# Repeating font-family falls back to the next entry for any codepoint
+# (including all of them, i.e. the whole family) not found in the previous
+# one — so this uses FiraCode when installed, else JetBrainsMono.
+font-family = "FiraCode Nerd Font Mono"
 font-family = "JetBrainsMono Nerd Font"
 font-size = 13
 
