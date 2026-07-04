@@ -119,7 +119,3 @@ command -v mise &>/dev/null && eval "$(mise activate zsh)"
 # SSH AGENT
 ## ---------
 export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/ssh-agent.socket
-
-# SECRETS
-## -------
-export CLAUDE_CODE_OAUTH_TOKEN="{{ env "CLAUDE_CODE_OAUTH_TOKEN" }}"
