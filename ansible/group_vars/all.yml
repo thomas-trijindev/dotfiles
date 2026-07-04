@@ -68,12 +68,6 @@ install_tailscale: false
 # Enable after Tailscale is authenticated
 install_autofs: false
 
-# GNOME Keyring — ensure daemon starts for all session types (SSH + graphical)
-# Prevents Claude Code and other libsecret apps from losing credentials after reboot
-# One-time manual step: open seahorse (Passwords and Keys), change Login keyring
-# password to empty — the auto-unlock service will then keep it unlocked always
-configure_gnome_keyring: true
-
 # GDM login screen power management (Fedora/GNOME only)
 # Prevents suspend on AC when no user is logged in; suspends on battery after idle
 configure_power: true
