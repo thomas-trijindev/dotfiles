@@ -11,6 +11,24 @@ echo "$(whoami) ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/ansible-nopas
 sudo chmod 440 /etc/sudoers.d/ansible-nopasswd
 ```
 
+### Want a separate dev checkout? Do this before running anything below
+
+By default, chezmoi manages its own clone of this repo at `~/.local/share/chezmoi` — you never need to think about it. Skip this if that's all you want.
+
+If instead you want to edit dotfiles from a normal clone somewhere like `~/dev/personal/dotfiles` (your own IDE, Claude Code, etc.), point chezmoi at it **before** running `./ansible/run.sh` or `chezmoi init`, otherwise you'll end up with two independent clones to keep in sync manually (see [Updating Dotfiles](#updating-dotfiles)):
+
+```bash
+git clone <repo-url> ~/dev/personal/dotfiles
+mkdir -p ~/.config/chezmoi
+cat > ~/.config/chezmoi/chezmoi.toml <<'EOF'
+sourceDir = "/home/<user>/dev/personal/dotfiles"
+EOF
+```
+
+With this in place, `chezmoi init` (including the one `./ansible/run.sh` runs via `ansible/roles/base/tasks/chezmoi.yml`) detects the source dir already exists and applies from your checkout instead of cloning a second copy.
+
+If you only added this **after** chezmoi already cloned into the default location, reconcile the two by checking `chezmoi diff` is empty, then delete the now-redundant `~/.local/share/chezmoi`.
+
 ## Quick Start
 
 ```bash
@@ -21,13 +39,6 @@ ansible-galaxy collection install -r ansible/requirements.yml
 ./ansible/run.sh
 # Prompts: vault password only (if vault.yml exists)
 # Requires NOPASSWD sudoers — see Prerequisites below
-```
-
-If you want `CLAUDE_CODE_OAUTH_TOKEN` rendered into your zshrc, export it first:
-
-```bash
-export CLAUDE_CODE_OAUTH_TOKEN="your-token"
-./ansible/run.sh
 ```
 
 ## What Gets Installed
@@ -62,56 +73,46 @@ Shell uses XDG layout — `ZDOTDIR` is set to `~/.config/zsh` in `~/.zshenv`. An
 
 ## Updating Dotfiles
 
-chezmoi is the source of truth. The workflow depends on where you make the change:
+This checkout (`~/dev/personal/dotfiles`) is chezmoi's source directory — configured via `sourceDir` in `~/.config/chezmoi/chezmoi.toml`. There is no separate `~/.local/share/chezmoi` clone to keep in sync; `chezmoi source-path` should always point back into this repo's `home/`.
 
-### You edited a file directly in `~` (e.g. `~/.config/zsh/.zshrc`)
+> A brand-new machine provisioned via `./ansible/run.sh` won't have this override yet, since it has no pre-existing checkout to point at — `ansible/roles/base/tasks/chezmoi.yml` runs the default `chezmoi init <repo>`, which clones into `~/.local/share/chezmoi`. Add the `sourceDir` override manually afterward if you also want a separate dev checkout like this one.
 
-chezmoi will detect the drift. Pull it back into the source:
+### You edited a file directly in `~` (e.g. `~/.config/ghostty/config`)
 
-```bash
-chezmoi re-add ~/.config/zsh/.zshrc
-```
-
-Then commit and push from this repo:
+Pull the change back into the source, then commit and push:
 
 ```bash
-cd ~/dev/personal/dotfiles
-git add home/dot_config/zsh/dot_zshrc.tmpl
+chezmoi re-add ~/.config/ghostty/config
+git add home/dot_config/ghostty/config
 git commit -m "..."
 git push
 ```
 
-On next deploy, `./ansible/run.sh` will run `chezmoi update --force` which pulls from the repo and applies.
+### You edited a file in this repo (e.g. `home/dot_config/ghostty/config`)
 
-### You edited a file in this repo (e.g. `home/dot_config/zsh/dot_zshrc.tmpl`)
-
-Commit and push, then apply locally:
+Commit and push, then apply:
 
 ```bash
 git add home/...
 git commit -m "..."
 git push
-chezmoi update
-```
-
-### You want to preview what chezmoi would change before applying
-
-```bash
-chezmoi diff
+chezmoi apply
 ```
 
 ### Useful chezmoi commands
 
 ```bash
-chezmoi diff                        # Preview unapplied changes
-chezmoi apply                       # Apply source to home directory
-chezmoi update                      # Pull from repo + apply
-chezmoi re-add ~/.config/zsh/.zshrc # Pull live file back into source
-chezmoi cd                          # cd into chezmoi source dir (~/.local/share/chezmoi)
-chezmoi edit ~/.config/zsh/.zshrc   # Edit source file for a given target
+chezmoi diff                          # Preview unapplied changes
+chezmoi apply                         # Apply source to home directory
+chezmoi status                        # Short diff summary
+chezmoi re-add ~/.config/ghostty/config  # Pull live file back into source
+chezmoi edit ~/.config/ghostty/config    # Edit source file for a given target
+chezmoi source-path                   # Print the source root chezmoi is using
 ```
 
-> **Note:** `~/.local/share/chezmoi` is chezmoi's working copy of this repo (cloned from GitHub). Edits there are equivalent to editing `home/` here.
+### Templates (`.tmpl` files)
+
+Files like `home/dot_config/zsh/dot_zshrc.tmpl` are Go templates rendered at apply time — useful for OS-specific values (`{{ if eq .chezmoi.os "darwin" }}`) or reading env vars at apply time. Avoid baking machine-specific secrets or short-lived values (e.g. OAuth access tokens) into a template — those belong in the tool's own credential storage, not a shell rc file.
 
 ## Selective Runs
 
