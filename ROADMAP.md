@@ -40,6 +40,44 @@ New `roles/macos/` role (Darwin-only, included in `local.yml` with `when: ansibl
 
 ---
 
+### Arch/Omarchy Config Sync (`dev`)
+
+Machine-specific fixes made directly on an Omarchy (Hyprland/Arch) laptop aren't captured in this repo yet. chezmoi isn't even initialized on that machine — `nvim`/`ghostty` there are still stock Omarchy defaults, not this repo's versions, so `chezmoi diff`/`chezmoi apply` needs care before it touches anything.
+
+#### Phase 1 — Point chezmoi at this checkout
+
+- Before `chezmoi init`, set the `sourceDir` override so chezmoi uses this clone instead of cloning a second copy into `~/.local/share/chezmoi` (see README's "Want a separate dev checkout?" section):
+  ```bash
+  mkdir -p ~/.config/chezmoi
+  cat > ~/.config/chezmoi/chezmoi.toml <<'EOF'
+  sourceDir = "/home/tjunkie/dev/personal/dotfiles"
+  EOF
+  chezmoi init
+  ```
+- Run `chezmoi diff` before applying anything — the live `nvim`/`ghostty` configs on that machine are plain Omarchy defaults, not this repo's versions, and would otherwise get silently overwritten.
+
+#### Phase 2 — Pull machine-specific fixes into the source
+
+Using `chezmoi re-add <path>` → `git add home/...` → commit, per the README's "Updating Dotfiles" flow:
+
+- `~/.config/hypr/looknfeel.lua` — `render.direct_scanout = false` (fixes NVIDIA/Hyprland window corruption during video playback)
+- `~/.config/hypr/input.lua` — `input.natural_scroll = true` (mouse wheel, to match touchpad)
+- `~/.config/chrome-flags.conf` / `~/.config/chromium-flags.conf` — `--disable-accelerated-video-decode` (fixes black-screen-on-YouTube caused by the `libva-nvidia-driver` VA-API path on hybrid Intel/NVIDIA graphics)
+- `~/.config/tmux/tmux.conf` — currently has a hardcoded `default-shell /usr/bin/bash`, patched over the repo's original hardcoded `/bin/zsh`
+
+No `hypr/` directory exists in `home/dot_config/` yet — this is net-new.
+
+#### Phase 3 — Fix the tmux shell-path hardcoding
+
+- Convert `home/dot_config/tmux/tmux.conf` to `tmux.conf.tmpl` and resolve `default-shell` per-machine at apply time (e.g. via chezmoi's `lookPath` template function), matching the `{{ if eq .chezmoi.os ... }}` pattern already used in `dot_zshrc.tmpl` — instead of a path hardcoded for one OS breaking on another.
+
+#### Phase 4 — Dropbox selective sync isn't a dotfile
+
+- The Dropbox selective-sync exclude list lives in Dropbox's own sqlite state (`~/.dropbox/`), not a plain config file — chezmoi can't manage it directly.
+- Add a small idempotent script (`bin/`) or an ansible task that runs `dropbox-cli exclude add <folders>` once Dropbox is installed on a fresh machine, so selective sync survives a reinstall.
+
+---
+
 ## Completed
 
 ### Chezmoi-Managed Dotfiles
